@@ -1,0 +1,1661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>SCERT Kerala AI Learning Portal</title>
+
+  <!-- Precompiled Tailwind CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" />
+
+  <!-- Lucide Icons (Reliable UMD Browser Bundle with Failover) -->
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.378.0/dist/umd/lucide.min.js"></script>
+  <script>
+    if (typeof lucide === "undefined") {
+      document.write('<script src="https://unpkg.com/lucide@0.378.0/dist/umd/lucide.js"><\/script>');
+    }
+  </script>
+
+  <!-- PDF.js for in-browser PDF text extraction -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  </script>
+
+  <!-- Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+    .rounded-2xl { border-radius: 1rem; }
+    .rounded-xl { border-radius: 0.75rem; }
+    .text-justify { text-align: justify; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- ================= TOAST NOTIFICATION CONTAINER ================= -->
+  <div id="toast-container" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col space-y-2 pointer-events-none w-11/12 max-w-sm"></div>
+
+  <!-- ================= FULL-SCREEN IMMERSIVE LEARNING OVERLAY ================= -->
+  <div id="student-fullscreen-overlay" class="hidden fixed inset-0 z-50 bg-gray-50 overflow-y-auto flex flex-col">
+    <!-- Top Mobile App Header -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-40 px-3 sm:px-6 py-2.5 flex items-center justify-between shadow-sm">
+      <div class="flex items-center space-x-2.5 min-w-0">
+        <button onclick="window.closeFullScreenView()" class="w-9 h-9 rounded-xl bg-gray-100 active:bg-gray-200 flex items-center justify-center flex-shrink-0 transition">
+          <i data-lucide="arrow-left" class="w-4 h-4 text-gray-700"></i>
+        </button>
+        <div class="min-w-0">
+          <span id="fs-meta-label" class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
+            Std • Subject
+          </span>
+          <h2 id="fs-unit-title" class="text-xs sm:text-sm font-extrabold text-gray-900 truncate">
+            Unit
+          </h2>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-1.5 flex-shrink-0" id="fs-header-actions">
+        <!-- Injected status / locks -->
+      </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-6 flex-1 w-full space-y-4">
+      <div id="fs-content-area" class="w-full">
+        <!-- Rendered modules -->
+      </div>
+    </main>
+  </div>
+
+  <!-- ================= TOP APP BAR ================= -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-5xl mx-auto px-3 sm:px-6 h-14 flex items-center justify-between">
+      
+      <!-- Logo / Title -->
+      <div class="flex items-center space-x-2">
+        <div class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+        </div>
+        <span class="text-sm font-extrabold text-gray-900 tracking-tight">വിദ്യAI</span>
+      </div>
+
+      <!-- Segmented Tab Switcher (Mobile App Style) -->
+      <div class="flex bg-gray-100 p-1 rounded-xl border border-gray-200 space-x-1">
+        <button id="btn-tab-student" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-indigo-700 shadow-sm">
+          <i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i>
+          <span>Learn</span>
+        </button>
+        <button id="btn-tab-teacher" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition text-gray-500 hover:text-gray-900">
+          <i data-lucide="upload-cloud" class="w-3.5 h-3.5"></i>
+          <span>Teacher</span>
+        </button>
+      </div>
+
+      <!-- Settings Icon Button -->
+      <button id="btn-open-settings" class="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition" title="Settings">
+        <i data-lucide="settings" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= MAIN APP BODY ================= -->
+  <main class="max-w-5xl mx-auto px-3 sm:px-6 py-4 flex-1 w-full">
+
+    <!-- ================= STUDENT VIEW ================= -->
+    <div id="view-student" class="space-y-4">
+      
+      <!-- Standard Selector (Horizontal Mobile Chip Scroll) -->
+      <div class="bg-white p-3 rounded-2xl border border-gray-200 shadow-sm">
+        <div class="flex items-center justify-between mb-2 px-1">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Class (സ്റ്റാൻഡേർഡ്)</span>
+          <span id="label-books-count" class="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-md">Checking...</span>
+        </div>
+        <div class="flex space-x-1.5 overflow-x-auto no-scrollbar py-0.5" id="standard-pill-container">
+          <!-- 1 to 10 Pills -->
+        </div>
+      </div>
+
+      <!-- Main Layout: Sidebar & Unit Content -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+        
+        <!-- Subject & Unit Selector -->
+        <div class="md:col-span-5 space-y-3">
+          <!-- Subjects List (Chips) -->
+          <div class="bg-white p-3 rounded-2xl border border-gray-200 shadow-sm">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-gray-400 block mb-2 px-1">Subject</span>
+            <div id="subjects-list" class="flex flex-wrap gap-1.5">
+              <span class="text-xs text-gray-400 px-1">Upload books to view subjects.</span>
+            </div>
+          </div>
+
+          <!-- Units Accordion / List -->
+          <div class="bg-white p-3 rounded-2xl border border-gray-200 shadow-sm">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-gray-400 block mb-2 px-1">Units (പാഠങ്ങൾ)</span>
+            <div id="units-list" class="space-y-1.5 max-h-96 overflow-y-auto no-scrollbar">
+              <span class="text-xs text-gray-400 px-1">Select a subject.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right / Canvas Area -->
+        <div class="md:col-span-7">
+          <div id="learning-canvas" class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm min-h-80 flex flex-col justify-center items-center text-center">
+            <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-2">
+              <i data-lucide="book-open" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-sm font-bold text-gray-800">Select a Unit</h3>
+            <p class="text-xs text-gray-400 max-w-xs mt-1">
+              Tap any unit on the left to start learning in full-screen focus mode.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ================= TEACHER VIEW ================= -->
+    <div id="view-teacher" class="hidden space-y-4">
+      
+      <!-- Upload Dropzone -->
+      <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+        <label id="dropzone" class="border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-indigo-50 bg-opacity-30 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition">
+          <input type="file" id="pdf-file-input" accept="application/pdf" class="hidden" />
+          <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center mb-2">
+            <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+          </div>
+          <span class="font-bold text-gray-800 text-xs sm:text-sm text-center" id="upload-status-title">Tap to Upload SCERT Textbook PDF</span>
+          <span class="text-[10px] text-gray-400 mt-0.5 text-center" id="upload-status-sub">Std 1 to 10 (Part 1 / Part 2)</span>
+          <div id="upload-progress-bar" class="w-48 bg-gray-200 h-1.5 rounded-full mt-3 overflow-hidden hidden">
+            <div class="bg-indigo-600 h-full w-0 transition-all duration-300" id="upload-progress-fill"></div>
+          </div>
+        </label>
+      </div>
+
+      <!-- Analysis Results Card -->
+      <div id="analysis-card" class="hidden bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+          <div>
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-green-700 bg-green-50 px-2 py-0.5 rounded border border-green-200">
+              Verified
+            </span>
+            <h3 class="text-base font-extrabold text-gray-900 mt-1" id="res-title">Std 8 — Science</h3>
+            <p class="text-xs text-gray-500" id="res-meta">Part 1 • English</p>
+          </div>
+          <button id="btn-save-firestore" class="bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1.5 shadow-sm transition">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>Save Book</span>
+          </button>
+        </div>
+
+        <div>
+          <span class="text-[11px] font-bold uppercase text-gray-400 block mb-2">
+            Units (<span id="res-units-count">0</span>)
+          </span>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto no-scrollbar" id="res-units-grid"></div>
+        </div>
+      </div>
+
+      <!-- Books in Firestore -->
+      <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
+        <div class="flex items-center justify-between mb-3 px-1">
+          <span class="text-xs font-bold text-gray-900">Stored Textbooks</span>
+          <span id="firestore-badge" class="text-[10px] text-gray-400 font-medium">Connecting...</span>
+        </div>
+        <div id="teacher-library-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ================= ADD MEDIA MODAL ================= -->
+  <div id="modal-add-media" class="fixed inset-0 bg-gray-900 bg-opacity-60 z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-white max-w-sm w-full rounded-2xl shadow-xl border border-gray-200 p-5 space-y-3">
+      <div class="flex justify-between items-center pb-2 border-b border-gray-100">
+        <h3 class="text-xs font-bold text-gray-900 flex items-center space-x-1.5">
+          <i data-lucide="image" class="w-4 h-4 text-indigo-600"></i>
+          <span>Attach Media</span>
+        </h3>
+        <button id="btn-close-media" class="text-gray-400 hover:text-gray-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div>
+        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Type</label>
+        <select id="input-media-type" class="w-full text-xs border border-gray-300 rounded-xl px-2.5 py-2 bg-white focus:outline-none">
+          <option value="video">Video (YouTube)</option>
+          <option value="image">Image URL</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Web URL</label>
+        <input type="url" id="input-media-url" placeholder="https://..." class="w-full text-xs border border-gray-300 rounded-xl px-3 py-2 focus:outline-none" />
+      </div>
+
+      <div>
+        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Caption (Optional)</label>
+        <input type="text" id="input-media-caption" placeholder="Label / Diagram" class="w-full text-xs border border-gray-300 rounded-xl px-3 py-2 focus:outline-none" />
+      </div>
+
+      <div class="pt-1">
+        <button id="btn-confirm-add-media" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition">
+          Attach & Save
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= CONFIG MODAL ================= -->
+  <div id="modal-settings" class="fixed inset-0 bg-gray-900 bg-opacity-60 z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-white max-w-sm w-full rounded-2xl shadow-xl border border-gray-200 p-5 space-y-3">
+      <div class="flex justify-between items-center pb-2 border-b border-gray-100">
+        <h3 class="text-xs font-bold text-gray-900 flex items-center space-x-1.5">
+          <i data-lucide="sliders" class="w-4 h-4 text-indigo-600"></i>
+          <span>Settings</span>
+        </h3>
+        <button id="btn-close-settings" class="text-gray-400 hover:text-gray-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div>
+        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Gemini API Key</label>
+        <input type="password" id="input-gemini-key" placeholder="AIzaSy..." class="w-full text-xs border border-gray-300 rounded-xl px-3 py-2 focus:outline-none" />
+      </div>
+
+      <div>
+        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Primary Model</label>
+        <input type="text" id="input-gemini-model" placeholder="gemini-3.8-flash" class="w-full text-xs border border-gray-300 rounded-xl px-3 py-2 focus:outline-none" />
+      </div>
+
+      <div>
+        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Firebase Config (Paste Console Code)</label>
+        <textarea id="input-firebase-config" rows="4" placeholder='const firebaseConfig = { ... };' class="w-full text-[10px] font-mono border border-gray-300 rounded-xl p-2.5 focus:outline-none"></textarea>
+      </div>
+
+      <div class="pt-1">
+        <button id="btn-save-settings" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition">
+          Save Configuration
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= APPLICATION LOGIC & FIREBASE SDK ================= -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { 
+      getFirestore, 
+      collection, 
+      doc, 
+      updateDoc, 
+      deleteDoc, 
+      addDoc, 
+      onSnapshot, 
+      query, 
+      orderBy, 
+      serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { 
+      getStorage, 
+      ref as sRef, 
+      uploadBytesResumable, 
+      getDownloadURL 
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
+    let db = null;
+    let storage = null;
+    let uploadedBooks = [];
+    let currentStd = 1;
+    let currentSubject = "";
+    let analyzedBookData = null;
+    let selectedFile = null;
+
+    window.lockState = {}; 
+    window.activeMediaTarget = null; 
+    window.currentUnitContext = null;
+    window.currentCardsState = null;
+    window.currentActivitiesData = [];
+    window.currentQuizData = [];
+
+    // SAFE ICON LOADER WRAPPER (Prevents 'lucide is not defined' crash)
+    function safeCreateIcons() {
+      if (typeof lucide !== "undefined" && lucide && typeof lucide.createIcons === "function") {
+        lucide.createIcons();
+      }
+    }
+
+    // Call safely on load
+    safeCreateIcons();
+
+    // ---------------- ROBUST JSON CLEANER & EXTRACTOR ----------------
+    function safeParseJSON(rawText) {
+      if (!rawText || typeof rawText !== "string") return null;
+      let clean = rawText.trim();
+      
+      clean = clean.replace(/```json/gi, "").replace(/```/g, "").trim();
+
+      const firstBracket = clean.indexOf("[");
+      const firstBrace = clean.indexOf("{");
+      let startIdx = -1;
+      let endIdx = -1;
+
+      if (firstBracket !== -1 && (firstBrace === -1 || firstBracket < firstBrace)) {
+        startIdx = firstBracket;
+        endIdx = clean.lastIndexOf("]");
+      } else if (firstBrace !== -1) {
+        startIdx = firstBrace;
+        endIdx = clean.lastIndexOf("}");
+      }
+
+      if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+        clean = clean.substring(startIdx, endIdx + 1);
+      }
+
+      return JSON.parse(clean);
+    }
+
+    // ---------------- STYLED TOAST NOTIFICATION ----------------
+    window.showToast = (message, type = "success") => {
+      const container = document.getElementById("toast-container");
+      const toast = document.createElement("div");
+      const icon = type === "success" ? "check-circle" : (type === "error" ? "alert-circle" : "info");
+      const bg = type === "success" ? "bg-gray-900 text-white" : (type === "error" ? "bg-red-600 text-white" : "bg-indigo-600 text-white");
+
+      toast.className = `${bg} px-3.5 py-2.5 rounded-xl shadow-lg flex items-center space-x-2 text-xs font-semibold transform transition-all duration-300 opacity-0 translate-y-2 pointer-events-auto w-full`;
+      toast.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 flex-shrink-0"></i><span class="truncate flex-1">${message}</span>`;
+      container.appendChild(toast);
+      safeCreateIcons();
+
+      setTimeout(() => toast.classList.remove("opacity-0", "translate-y-2"), 20);
+      setTimeout(() => {
+        toast.classList.add("opacity-0", "translate-y-2");
+        setTimeout(() => toast.remove(), 300);
+      }, 2600);
+    };
+
+    // Clean plain-text copy
+    window.copyPlainText = (text, successMsg = "Copied!") => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => showToast(successMsg)).catch(() => fallbackCopy(text, successMsg));
+      } else {
+        fallbackCopy(text, successMsg);
+      }
+    };
+
+    function fallbackCopy(text, successMsg) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+        showToast(successMsg);
+      } catch (e) {
+        showToast("Copy failed", "error");
+      }
+      document.body.removeChild(ta);
+    }
+
+    function getActiveModel() {
+      let m = localStorage.getItem("scert_gemini_model");
+      if (!m || m.includes("1.5") || m.includes("2.0-flash")) {
+        m = "gemini-3.8-flash";
+        localStorage.setItem("scert_gemini_model", m);
+      }
+      return m;
+    }
+
+    function getEmbedUrl(url) {
+      if (!url) return null;
+      const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
+      if (ytMatch) {
+        return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?autoplay=0&controls=0&rel=0&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&showinfo=0&playsinline=1`;
+      }
+      return url;
+    }
+
+    let cachedLiveModels = null;
+    async function getAvailableGeminiModels(apiKey) {
+      if (cachedLiveModels && cachedLiveModels.length > 0) return cachedLiveModels;
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && Array.isArray(data.models)) {
+            const valid = data.models
+              .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"))
+              .map(m => m.name.replace(/^models\//, ""))
+              .filter(m => !m.includes("1.5") && !m.includes("2.0-flash"));
+            if (valid.length > 0) {
+              cachedLiveModels = valid;
+              return valid;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn(e);
+      }
+      return ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"];
+    }
+
+    async function callGeminiWithFailover(apiKey, payload, onStatusUpdate) {
+      const preferred = getActiveModel();
+      const liveList = await getAvailableGeminiModels(apiKey);
+      const candidateModels = [preferred, ...liveList, "gemini-3.8-flash", "gemini-3.5-flash-lite"]
+        .filter((m, idx, arr) => m && !m.includes("1.5") && !m.includes("2.0-flash") && arr.indexOf(m) === idx);
+
+      const executeRequest = async (mIdx, attempt) => {
+        if (mIdx >= candidateModels.length) {
+          throw new Error("High traffic on AI servers. Please retry in a few moments.");
+        }
+
+        const model = candidateModels[mIdx];
+        if (onStatusUpdate && (mIdx > 0 || attempt > 1)) {
+          onStatusUpdate(`Busy. Connecting via ${model}...`);
+        }
+
+        try {
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+          const resp = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          if (resp.status === 503 || resp.status === 429) {
+            if (attempt < 2) {
+              await new Promise(r => setTimeout(r, 1200));
+              return executeRequest(mIdx, attempt + 1);
+            } else {
+              return executeRequest(mIdx + 1, 1);
+            }
+          }
+
+          if (!resp.ok) {
+            if (resp.status === 404 && mIdx + 1 < candidateModels.length) {
+              return executeRequest(mIdx + 1, 1);
+            }
+            throw new Error(`AI Status ${resp.status}`);
+          }
+
+          return await resp.json();
+        } catch (err) {
+          if ((err.message.includes("503") || err.message.includes("Failed to fetch")) && attempt < 2) {
+            await new Promise(r => setTimeout(r, 1200));
+            return executeRequest(mIdx, attempt + 1);
+          }
+          if (mIdx + 1 < candidateModels.length) {
+            return executeRequest(mIdx + 1, 1);
+          }
+          throw err;
+        }
+      };
+
+      return executeRequest(0, 1);
+    }
+
+    function parseFirebaseConfig(raw) {
+      if (!raw || !raw.trim()) return null;
+      let cleaned = raw.trim().replace(/^(const|let|var)\s+\w+\s*=\s*/, "").replace(/;\s*$/, "");
+      try {
+        return JSON.parse(cleaned);
+      } catch (e1) {
+        try {
+          const fn = new Function(`"use strict"; return (${cleaned});`);
+          const result = fn();
+          if (result && typeof result === "object" && result.apiKey) return result;
+          throw new Error("Invalid config");
+        } catch (e2) {
+          throw new Error("Invalid Firebase Config format");
+        }
+      }
+    }
+
+    // ---------------- TAB SWITCHING ----------------
+    const tabStudent = document.getElementById("btn-tab-student");
+    const tabTeacher = document.getElementById("btn-tab-teacher");
+    const viewStudent = document.getElementById("view-student");
+    const viewTeacher = document.getElementById("view-teacher");
+
+    tabStudent.onclick = () => {
+      tabStudent.className = "flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-indigo-700 shadow-sm";
+      tabTeacher.className = "flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition text-gray-500 hover:text-gray-900";
+      viewStudent.classList.remove("hidden");
+      viewTeacher.classList.add("hidden");
+      safeCreateIcons();
+    };
+
+    tabTeacher.onclick = () => {
+      tabTeacher.className = "flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-indigo-700 shadow-sm";
+      tabStudent.className = "flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition text-gray-500 hover:text-gray-900";
+      viewTeacher.classList.remove("hidden");
+      viewStudent.classList.add("hidden");
+      safeCreateIcons();
+    };
+
+    // Settings
+    const modalSettings = document.getElementById("modal-settings");
+    document.getElementById("btn-open-settings").onclick = () => {
+      document.getElementById("input-gemini-key").value = localStorage.getItem("scert_gemini_key") || "";
+      document.getElementById("input-gemini-model").value = getActiveModel();
+      document.getElementById("input-firebase-config").value = localStorage.getItem("scert_firebase_cfg") || "";
+      modalSettings.classList.remove("hidden");
+    };
+    document.getElementById("btn-close-settings").onclick = () => modalSettings.classList.add("hidden");
+
+    document.getElementById("btn-save-settings").onclick = () => {
+      const gKey = document.getElementById("input-gemini-key").value.trim();
+      let gModel = document.getElementById("input-gemini-model").value.trim() || "gemini-3.8-flash";
+      if (gModel.includes("1.5") || gModel.includes("2.0-flash")) gModel = "gemini-3.8-flash";
+      const fbRaw = document.getElementById("input-firebase-config").value.trim();
+
+      try {
+        if (fbRaw) parseFirebaseConfig(fbRaw);
+        localStorage.setItem("scert_gemini_key", gKey);
+        localStorage.setItem("scert_gemini_model", gModel);
+        localStorage.setItem("scert_firebase_cfg", fbRaw);
+        cachedLiveModels = null;
+        modalSettings.classList.add("hidden");
+        initFirebase();
+        showToast("Settings saved!");
+      } catch (err) {
+        showToast(err.message, "error");
+      }
+    };
+
+    // Firebase Init
+    function initFirebase() {
+      const rawCfg = localStorage.getItem("scert_firebase_cfg");
+      const badge = document.getElementById("firestore-badge");
+
+      if (!rawCfg) {
+        badge.innerText = "Demo Mode";
+        badge.className = "text-[10px] text-amber-600 font-bold";
+        renderTeacherLibrary();
+        renderStudentPortal();
+        return;
+      }
+
+      try {
+        const config = parseFirebaseConfig(rawCfg);
+        const app = initializeApp(config);
+        db = getFirestore(app);
+        try { storage = getStorage(app); } catch (sErr) {}
+
+        badge.innerText = "Connected";
+        badge.className = "text-[10px] text-green-600 font-bold";
+
+        const q = query(collection(db, "textbooks"), orderBy("createdAt", "desc"));
+        onSnapshot(q, (snapshot) => {
+          uploadedBooks = [];
+          snapshot.forEach((doc) => uploadedBooks.push({ id: doc.id, ...doc.data() }));
+          renderTeacherLibrary();
+          renderStudentPortal();
+        }, (err) => {
+          badge.innerText = "Offline";
+          badge.className = "text-[10px] text-red-500 font-bold";
+        });
+      } catch (err) {
+        badge.innerText = "Error";
+      }
+    }
+
+    window.deleteBookFromFirestore = async (bookId, bookTitle) => {
+      if (!confirm(`Delete "${bookTitle}"?`)) return;
+      try {
+        if (db) {
+          await deleteDoc(doc(db, "textbooks", bookId));
+          showToast(`Deleted ${bookTitle}`);
+        } else {
+          uploadedBooks = uploadedBooks.filter(b => b.id !== bookId);
+          renderTeacherLibrary();
+          renderStudentPortal();
+        }
+      } catch (err) {
+        showToast("Delete failed", "error");
+      }
+    };
+
+    // PDF Analysis
+    const dropzone = document.getElementById("dropzone");
+    const fileInput = document.getElementById("pdf-file-input");
+    dropzone.onclick = () => fileInput.click();
+    fileInput.onchange = async (e) => {
+      selectedFile = e.target.files[0];
+      if (selectedFile) await processSelectedPdf(selectedFile);
+    };
+
+    async function processSelectedPdf(file) {
+      const titleEl = document.getElementById("upload-status-title");
+      const subEl = document.getElementById("upload-status-sub");
+      const pBar = document.getElementById("upload-progress-bar");
+      const pFill = document.getElementById("upload-progress-fill");
+
+      const apiKey = localStorage.getItem("scert_gemini_key");
+      if (!apiKey) {
+        showToast("Please enter Gemini API Key in Settings.", "error");
+        return;
+      }
+
+      pBar.classList.remove("hidden");
+      pFill.style.width = "20%";
+      titleEl.innerText = "Reading TOC (Pages 1-10)...";
+      subEl.innerText = file.name;
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const maxPages = Math.min(pdf.numPages, 10);
+
+        const pagePromises = Array.from({ length: maxPages }, async (_, idx) => {
+          const page = await pdf.getPage(idx + 1);
+          const content = await page.getTextContent();
+          return `\n--- Page ${idx + 1} ---\n` + content.items.map(item => item.str).join(" ");
+        });
+
+        pFill.style.width = "50%";
+        const pageTexts = await Promise.all(pagePromises);
+        const frontMatterText = pageTexts.join(" ");
+
+        titleEl.innerText = "Analyzing Curriculum...";
+        pFill.style.width = "75%";
+
+        const prompt = `Analyze this Table of Contents (ഉള്ളടക്കം) from a Kerala SCERT textbook.
+Extract class, subject, part, medium, and units into this JSON schema:
+{
+  "standard": 8,
+  "subject": "Basic Science",
+  "part": "Part 1",
+  "medium": "English",
+  "units": [
+    { "unit_no": 1, "title": "Properties of Matter", "page_start": 7 }
+  ]
+}
+
+Front pages:
+\"\"\"${frontMatterText.slice(0, 10000)}\"\"\"`;
+
+        const data = await callGeminiWithFailover(
+          apiKey,
+          {
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: "application/json" }
+          },
+          (msg) => { subEl.innerText = msg; }
+        );
+
+        const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        analyzedBookData = safeParseJSON(jsonText);
+
+        if (!analyzedBookData) throw new Error("Could not parse textbook structure");
+
+        pFill.style.width = "100%";
+        titleEl.innerText = "Analysis Complete";
+        displayAnalysisResults(analyzedBookData);
+      } catch (err) {
+        showToast(err.message, "error");
+        titleEl.innerText = "Upload Failed";
+        pBar.classList.add("hidden");
+      }
+    }
+
+    function displayAnalysisResults(data) {
+      document.getElementById("analysis-card").classList.remove("hidden");
+      document.getElementById("res-title").innerText = `Std ${data.standard} — ${data.subject}`;
+      document.getElementById("res-meta").innerText = `${data.part} • ${data.medium}`;
+      document.getElementById("res-units-count").innerText = (data.units || []).length;
+
+      const grid = document.getElementById("res-units-grid");
+      grid.innerHTML = "";
+      (data.units || []).forEach((u) => {
+        const item = document.createElement("div");
+        item.className = "flex items-center justify-between p-2 bg-gray-50 border border-gray-200 rounded-xl text-xs";
+        item.innerHTML = `
+          <div class="flex items-center space-x-1.5 truncate">
+            <span class="w-5 h-5 rounded bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-[10px] flex-shrink-0">${u.unit_no}</span>
+            <span class="font-semibold text-gray-800 truncate">${u.title}</span>
+          </div>
+          <span class="text-gray-400 text-[10px] flex-shrink-0">${u.page_start ? "P." + u.page_start : ""}</span>
+        `;
+        grid.appendChild(item);
+      });
+      safeCreateIcons();
+    }
+
+    // Save Book
+    document.getElementById("btn-save-firestore").onclick = async () => {
+      const btn = document.getElementById("btn-save-firestore");
+      btn.disabled = true;
+
+      try {
+        if (!db) throw new Error("Configure Firebase in Settings to save");
+        if (!analyzedBookData) throw new Error("No book analyzed");
+
+        const bookPayload = {
+          standard: Number(analyzedBookData.standard) || 1,
+          subject: analyzedBookData.subject || "General",
+          part: analyzedBookData.part || "Part 1",
+          medium: analyzedBookData.medium || "General",
+          units: analyzedBookData.units || [],
+          fileName: selectedFile ? selectedFile.name : "textbook.pdf",
+          createdAt: serverTimestamp()
+        };
+
+        await addDoc(collection(db, "textbooks"), bookPayload);
+        showToast(`Saved Std ${bookPayload.standard} ${bookPayload.subject}`);
+
+        document.getElementById("analysis-card").classList.add("hidden");
+        document.getElementById("upload-progress-bar").classList.add("hidden");
+        document.getElementById("upload-status-title").innerText = "Tap to Upload Another PDF";
+        selectedFile = null;
+        analyzedBookData = null;
+      } catch (err) {
+        showToast(err.message, "error");
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    function renderTeacherLibrary() {
+      const container = document.getElementById("teacher-library-grid");
+      container.innerHTML = "";
+
+      if (uploadedBooks.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full text-center py-6 text-gray-400">
+            <i data-lucide="inbox" class="w-6 h-6 mx-auto mb-1 text-gray-300"></i>
+            <p class="text-xs">No textbooks stored.</p>
+          </div>
+        `;
+        safeCreateIcons();
+        return;
+      }
+
+      uploadedBooks.forEach((book) => {
+        const card = document.createElement("div");
+        card.className = "p-3 bg-gray-50 border border-gray-200 rounded-xl space-y-2 flex flex-col justify-between";
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">Std ${book.standard}</span>
+              <span class="text-[10px] text-gray-400 font-medium">${book.part || "Part 1"}</span>
+            </div>
+            <h4 class="text-xs font-bold text-gray-900 mt-1 truncate">${book.subject}</h4>
+            <p class="text-[10px] text-gray-500">${book.units ? book.units.length : 0} Units</p>
+          </div>
+          <button onclick="window.deleteBookFromFirestore('${book.id}', 'Std ${book.standard} ${book.subject}')" class="w-full py-1 bg-white hover:bg-red-50 text-red-600 border border-red-200 rounded-lg text-[10px] font-bold flex items-center justify-center space-x-1 transition">
+            <i data-lucide="trash-2" class="w-3 h-3"></i>
+            <span>Remove</span>
+          </button>
+        `;
+        container.appendChild(card);
+      });
+      safeCreateIcons();
+    }
+
+    // ---------------- STUDENT PORTAL (MOBILE FIRST) ----------------
+    function renderStandardsPills() {
+      const container = document.getElementById("standard-pill-container");
+      container.innerHTML = "";
+      const standards = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      standards.forEach((i) => {
+        const btn = document.createElement("button");
+        const isActive = currentStd === i;
+        btn.className = `px-3.5 py-1.5 rounded-xl text-xs font-bold flex-shrink-0 transition ${
+          isActive ? "bg-indigo-600 text-white shadow-sm" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+        }`;
+        btn.innerText = `Std ${i}`;
+        btn.onclick = () => {
+          currentStd = i;
+          renderStandardsPills();
+          renderSubjects();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function renderSubjects() {
+      const subjectsList = document.getElementById("subjects-list");
+      const filteredBooks = uploadedBooks.filter((b) => Number(b.standard) === currentStd);
+      subjectsList.innerHTML = "";
+
+      if (filteredBooks.length === 0) {
+        subjectsList.innerHTML = `<span class="text-xs text-gray-400 px-1">No books in Std ${currentStd}.</span>`;
+        document.getElementById("units-list").innerHTML = `<span class="text-xs text-gray-400 px-1">No units.</span>`;
+        return;
+      }
+
+      currentSubject = filteredBooks[0].subject;
+
+      filteredBooks.forEach((book) => {
+        const btn = document.createElement("button");
+        const isActive = book.subject === currentSubject;
+        btn.className = `px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+          isActive ? "bg-indigo-50 border border-indigo-200 text-indigo-700" : "bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200"
+        }`;
+        btn.innerText = `${book.subject} (${book.part || "P1"})`;
+        btn.onclick = () => {
+          currentSubject = book.subject;
+          renderSubjects();
+          renderUnits(book);
+        };
+        subjectsList.appendChild(btn);
+      });
+
+      renderUnits(filteredBooks[0]);
+    }
+
+    function renderUnits(book) {
+      const unitsList = document.getElementById("units-list");
+      unitsList.innerHTML = "";
+
+      if (!book.units || book.units.length === 0) {
+        unitsList.innerHTML = `<span class="text-xs text-gray-400 px-1">No units.</span>`;
+        return;
+      }
+
+      book.units.forEach((unit) => {
+        const item = document.createElement("button");
+        item.className = "w-full text-left p-2.5 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 text-xs font-semibold text-gray-700 transition flex items-center justify-between group";
+        item.innerHTML = `
+          <div class="flex items-center space-x-2 truncate">
+            <span class="w-5 h-5 rounded bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-[10px] flex-shrink-0">${unit.unit_no}</span>
+            <span class="truncate">${unit.title}</span>
+          </div>
+          <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-gray-300 group-hover:text-indigo-600 flex-shrink-0"></i>
+        `;
+        item.onclick = () => openInteractiveStudio(book, unit);
+        unitsList.appendChild(item);
+      });
+      safeCreateIcons();
+    }
+
+    // Full screen overlay toggle
+    window.openFullScreenView = (moduleTitle) => {
+      const { book, unit } = window.currentUnitContext;
+      const overlay = document.getElementById("student-fullscreen-overlay");
+      document.getElementById("fs-meta-label").innerText = `Std ${book.standard} • ${book.subject} (${book.part || "P1"})`;
+      document.getElementById("fs-unit-title").innerText = `Unit ${unit.unit_no}: ${unit.title} — ${moduleTitle}`;
+      overlay.classList.remove("hidden");
+      document.body.style.overflow = "hidden";
+      overlay.scrollTop = 0;
+    };
+
+    window.closeFullScreenView = () => {
+      document.getElementById("student-fullscreen-overlay").classList.add("hidden");
+      document.body.style.overflow = "auto";
+    };
+
+    function openInteractiveStudio(book, unit) {
+      window.currentUnitContext = { book, unit };
+
+      const canvas = document.getElementById("learning-canvas");
+      canvas.className = "bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4 text-left";
+      canvas.innerHTML = `
+        <div class="border-b border-gray-100 pb-3 flex items-center justify-between">
+          <div class="min-w-0">
+            <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
+              Std ${book.standard} • ${book.subject}
+            </span>
+            <h2 class="text-sm sm:text-base font-extrabold text-gray-900 mt-1 truncate">Unit ${unit.unit_no}: ${unit.title}</h2>
+          </div>
+        </div>
+
+        <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Select Mode</span>
+
+        <!-- 3 Modern Touch Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <button id="btn-gen-summary" class="p-3.5 bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-300 rounded-xl transition text-left flex items-center space-x-3 group">
+            <div class="p-2 rounded-lg bg-indigo-100 text-indigo-700"><i data-lucide="layers" class="w-4 h-4"></i></div>
+            <div class="min-w-0">
+              <p class="text-xs font-bold text-gray-900 truncate">1. Concept Cards</p>
+              <p class="text-[10px] text-gray-400">12+ Points & Media</p>
+            </div>
+          </button>
+
+          <button id="btn-gen-activities" class="p-3.5 bg-gray-50 hover:bg-amber-50 border border-gray-200 hover:border-amber-300 rounded-xl transition text-left flex items-center space-x-3 group">
+            <div class="p-2 rounded-lg bg-amber-100 text-amber-700"><i data-lucide="award" class="w-4 h-4"></i></div>
+            <div class="min-w-0">
+              <p class="text-xs font-bold text-gray-900 truncate">2. Activities</p>
+              <p class="text-[10px] text-gray-400">Score 5 Each • Qs First</p>
+            </div>
+          </button>
+
+          <button id="btn-gen-quiz" class="p-3.5 bg-gray-50 hover:bg-green-50 border border-gray-200 hover:border-green-300 rounded-xl transition text-left flex items-center space-x-3 group">
+            <div class="p-2 rounded-lg bg-green-100 text-green-700"><i data-lucide="help-circle" class="w-4 h-4"></i></div>
+            <div class="min-w-0">
+              <p class="text-xs font-bold text-gray-900 truncate">3. Quiz</p>
+              <p class="text-[10px] text-gray-400">Ordered • Score</p>
+            </div>
+          </button>
+        </div>
+
+        <div class="bg-gray-50 p-4 rounded-xl text-center">
+          <p class="text-xs text-gray-400">Tap any mode above to enter full screen.</p>
+        </div>
+      `;
+      safeCreateIcons();
+
+      document.getElementById("btn-gen-summary").onclick = () => {
+        openFullScreenView("Concept Cards");
+        loadOrGenerateConceptSummary(book, unit);
+      };
+      document.getElementById("btn-gen-activities").onclick = () => {
+        openFullScreenView("Activities");
+        loadOrGenerateUnitActivities(book, unit);
+      };
+      document.getElementById("btn-gen-quiz").onclick = () => {
+        openFullScreenView("Quiz");
+        loadOrGenerateUnitQuiz(book, unit);
+      };
+    }
+
+    // Local/Firestore caching
+    async function persistUnitContent(book, unitKey, payload) {
+      if (book.id && db) {
+        try {
+          await updateDoc(doc(db, "textbooks", book.id), { [unitKey]: payload });
+          book[unitKey] = payload;
+        } catch (err) {}
+      }
+      localStorage.setItem(`scert_${unitKey}`, JSON.stringify(payload));
+    }
+
+    function getCachedUnitContent(book, unitKey) {
+      if (book[unitKey]) return book[unitKey];
+      const local = localStorage.getItem(`scert_${unitKey}`);
+      if (local) {
+        try { return JSON.parse(local); } catch(e) {}
+      }
+      return null;
+    }
+
+    // ---------------- RESTRUCTURED STYLED ERROR COMPONENT (NO RAW EMBEDDED DUMPS) ----------------
+    function renderCustomErrorUI(containerId, error, retryFnName) {
+      const out = document.getElementById(containerId);
+      let title = "Connection Notice";
+      let desc = "The AI service was interrupted. Please tap below to try again.";
+
+      const msg = error.message || "";
+      if (msg.includes("503") || msg.includes("traffic") || msg.includes("busy")) {
+        title = "AI Server Busy";
+        desc = "Google AI is experiencing high global traffic. Tap below to connect.";
+      } else if (msg.includes("Key") || msg.includes("403")) {
+        title = "API Key Required";
+        desc = "Please enter your valid Gemini API key in Settings.";
+      }
+
+      out.innerHTML = `
+        <div class="p-6 bg-white border border-gray-200 rounded-2xl shadow-sm text-center space-y-3 max-w-sm mx-auto my-6">
+          <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 mx-auto flex items-center justify-center">
+            <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+          </div>
+          <h4 class="text-xs font-bold text-gray-900">${title}</h4>
+          <p class="text-[11px] text-gray-500 leading-relaxed">${desc}</p>
+          <button onclick="${retryFnName}()" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5">
+            <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+            <span>Try Again</span>
+          </button>
+        </div>
+      `;
+      safeCreateIcons();
+    }
+
+    // ---------------- 1. CONCEPT CARDS (MINIMUM 12 CONCEPTS) ----------------
+    async function loadOrGenerateConceptSummary(book, unit) {
+      const summaryKey = `summary_${unit.unit_no}`;
+      const cacheId = `scert_summary_${book.id || 'b'}_u${unit.unit_no}`;
+      const cached = getCachedUnitContent(book, summaryKey);
+
+      if (cached && window.lockState[cacheId] !== false) {
+        window.lockState[cacheId] = true;
+        renderSummaryCards(cached, book, unit, true);
+        return;
+      }
+
+      const out = document.getElementById("fs-content-area");
+      out.innerHTML = `
+        <div class="flex flex-col items-center justify-center space-y-2.5 text-indigo-600 py-16 text-center">
+          <i data-lucide="loader" class="w-7 h-7 animate-spin"></i>
+          <span class="text-xs font-bold" id="summary-loader-text">Extracting at least 12 sequential concepts...</span>
+        </div>
+      `;
+      safeCreateIcons();
+
+      const apiKey = localStorage.getItem("scert_gemini_key");
+      if (!apiKey) {
+        renderCustomErrorUI("fs-content-area", { message: "Key" }, "window.retrySummary");
+        return;
+      }
+
+      // STRICT INSTRUCTION: MUST GENERATE AT LEAST 12 CONCEPTS
+      const prompt = `You are a Kerala SCERT master teacher.
+For Standard ${book.standard} ${book.subject}, Chapter: "${unit.title}":
+GENERATE AT LEAST 12 CONCEPTS (from 1 to 12 or more). You MUST NOT output fewer than 12 concepts.
+Cover all topics chronologically. Each concept must have short, simple bullet points.
+
+OUTPUT RULES: Start your response with '[' immediately. Do not write any intro text. Output valid JSON:
+[
+  {
+    "concept_order": 1,
+    "heading": "Concept Heading",
+    "badge": "Core Law / Definition",
+    "points": [
+      "Short key point one",
+      "Short key point two",
+      "Short key point three"
+    ],
+    "media": []
+  }
+]`;
+
+      try {
+        const loaderText = document.getElementById("summary-loader-text");
+        const data = await callGeminiWithFailover(
+          apiKey,
+          {
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: "application/json" }
+          },
+          (msg) => { if (loaderText) loaderText.innerText = msg; }
+        );
+
+        const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        const cards = safeParseJSON(jsonText);
+
+        if (!Array.isArray(cards) || cards.length === 0) {
+          throw new Error("Could not parse concept cards JSON");
+        }
+
+        cards.sort((a, b) => (a.concept_order || 0) - (b.concept_order || 0));
+
+        await persistUnitContent(book, summaryKey, cards);
+        window.lockState[cacheId] = true;
+
+        renderSummaryCards(cards, book, unit, true);
+      } catch (err) {
+        renderCustomErrorUI("fs-content-area", err, "window.retrySummary");
+      }
+    }
+
+    window.retrySummary = () => {
+      if (window.currentUnitContext) {
+        loadOrGenerateConceptSummary(window.currentUnitContext.book, window.currentUnitContext.unit);
+      }
+    };
+
+    window.toggleConceptCard = (idx) => {
+      const body = document.getElementById(`concept-body-${idx}`);
+      const icon = document.getElementById(`concept-chevron-${idx}`);
+      const isHidden = body.classList.contains("hidden");
+      if (isHidden) {
+        body.classList.remove("hidden");
+        icon.classList.add("rotate-180");
+      } else {
+        body.classList.add("hidden");
+        icon.classList.remove("rotate-180");
+      }
+    };
+
+    function renderSummaryCards(cards, book, unit, isLocked) {
+      const out = document.getElementById("fs-content-area");
+      const headerActions = document.getElementById("fs-header-actions");
+      const cacheId = `scert_summary_${book.id || 'b'}_u${unit.unit_no}`;
+
+      headerActions.innerHTML = isLocked ? `
+        <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded">Locked</span>
+        <button onclick="if(confirm('Unlock to regenerate?')){ window.lockState['${cacheId}'] = false; loadOrGenerateConceptSummary(window.currentUnitContext.book, window.currentUnitContext.unit); }" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded text-[10px] font-bold">
+          Unlock
+        </button>
+      ` : ``;
+
+      let html = `
+        <div class="space-y-3 w-full">
+          <div class="flex items-center justify-between px-1">
+            <span class="text-[11px] font-bold uppercase text-gray-400">${cards.length} Concepts</span>
+            <span class="text-[10px] text-gray-400">Tap to expand</span>
+          </div>
+
+          <div class="space-y-2 w-full">
+      `;
+
+      cards.forEach((card, idx) => {
+        let points = card.points;
+        if (!points || !Array.isArray(points)) {
+          points = card.description ? card.description.split("\n").filter(p => p.trim()) : [];
+        }
+
+        const mediaItems = card.media || [];
+
+        html += `
+          <div class="w-full bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+            
+            <!-- Header: Tap to Expand -->
+            <div onclick="window.toggleConceptCard(${idx})" class="p-3.5 cursor-pointer flex items-center justify-between hover:bg-gray-50 select-none">
+              <div class="flex items-center space-x-2.5 truncate">
+                <span class="w-6 h-6 rounded bg-indigo-50 text-indigo-700 font-bold text-[10px] flex items-center justify-center flex-shrink-0">
+                  ${idx + 1}
+                </span>
+                <h4 class="text-xs font-bold text-gray-900 truncate">${card.heading}</h4>
+              </div>
+              <i data-lucide="chevron-down" id="concept-chevron-${idx}" class="w-3.5 h-3.5 text-gray-400 transform transition flex-shrink-0"></i>
+            </div>
+
+            <!-- Body: Collapsed by Default -->
+            <div id="concept-body-${idx}" class="hidden p-4 border-t border-gray-100 bg-gray-50 space-y-3">
+              <ul class="space-y-2 text-xs text-gray-700">
+                ${points.map(pt => `
+                  <li class="flex items-start space-x-2 text-left text-justify">
+                    <span class="text-indigo-600 font-black text-xs mt-0.5">•</span>
+                    <span class="leading-relaxed flex-1">${pt.replace(/^[-•*]\s*/, "")}</span>
+                  </li>
+                `).join("")}
+              </ul>
+
+              <!-- Media -->
+              ${mediaItems.length > 0 ? `
+                <div class="pt-2 border-t border-gray-200 space-y-2">
+                  ${mediaItems.map((m, mIdx) => `
+                    <div class="relative rounded-xl overflow-hidden bg-black" style="aspect-ratio: 16/9;">
+                      ${m.type === 'video' ? `
+                        <iframe src="${getEmbedUrl(m.url)}" class="absolute left-0 w-full" style="height: 140%; top: -20%; border: 0;" allowfullscreen></iframe>
+                      ` : `
+                        <img src="${m.url}" class="w-full h-full object-cover"/>
+                      `}
+                      <button onclick="handleRemoveMedia(${idx}, ${mIdx})" class="absolute top-2 right-2 p-1 bg-white text-red-600 rounded-md">
+                        <i data-lucide="trash-2" class="w-3 h-3"></i>
+                      </button>
+                    </div>
+                  `).join("")}
+                </div>
+              ` : ""}
+
+              <button onclick="openAddMediaModal(${idx})" class="w-full py-1.5 bg-white hover:bg-indigo-50 border border-dashed border-gray-300 rounded-lg text-gray-500 hover:text-indigo-600 text-[10px] font-bold flex items-center justify-center space-x-1">
+                <i data-lucide="plus" class="w-3 h-3"></i>
+                <span>Add Image / Video</span>
+              </button>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div></div>`;
+      out.innerHTML = html;
+      safeCreateIcons();
+
+      window.currentCardsState = { cards, book, unit };
+    }
+
+    // ---------------- 2. UNIT ACTIVITIES (SCORE 5 EACH, 1 COPY BTN, JUSTIFIED) ----------------
+    async function loadOrGenerateUnitActivities(book, unit) {
+      const activityKey = `activity_${unit.unit_no}`;
+      const cacheId = `scert_activity_${book.id || 'b'}_u${unit.unit_no}`;
+      const cached = getCachedUnitContent(book, activityKey);
+
+      if (cached && window.lockState[cacheId] !== false) {
+        window.lockState[cacheId] = true;
+        renderActivityCards(cached, book, unit, true);
+        return;
+      }
+
+      const out = document.getElementById("fs-content-area");
+      out.innerHTML = `
+        <div class="flex flex-col items-center justify-center space-y-2.5 text-amber-600 py-16 text-center">
+          <i data-lucide="loader" class="w-7 h-7 animate-spin"></i>
+          <span class="text-xs font-bold" id="activity-loader-text">Formulating activities (Max score 5 each)...</span>
+        </div>
+      `;
+      safeCreateIcons();
+
+      const apiKey = localStorage.getItem("scert_gemini_key");
+      if (!apiKey) {
+        renderCustomErrorUI("fs-content-area", { message: "Key" }, "window.retryActivities");
+        return;
+      }
+
+      const prompt = `You are a Kerala SCERT master teacher.
+For Standard ${book.standard} ${book.subject}, Chapter: "${unit.title}":
+Create classroom ACTIVITIES covering ALL concepts.
+RULES:
+1. Total score of each activity MUST equal 5.
+2. 2 to 4 questions per activity.
+3. Question scores: 1, 2, 3, or 4.
+4. Model answers must use bullet dots (•), never numbers.
+5. Output immediately starting with '[' without intro text.
+
+JSON format:
+[
+  {
+    "activity_no": 1,
+    "title": "Activity Title",
+    "total_score": 5,
+    "questions": [
+      {
+        "q_no": 1,
+        "score": 2,
+        "question": "Question text here without score number",
+        "answer": "• Key point one\\n• Key point two"
+      },
+      {
+        "q_no": 2,
+        "score": 3,
+        "question": "Question text here without score number",
+        "answer": "• Key point one\\n• Key point two\\n• Key point three"
+      }
+    ]
+  }
+]`;
+
+      try {
+        const loaderText = document.getElementById("activity-loader-text");
+        const data = await callGeminiWithFailover(
+          apiKey,
+          {
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: "application/json" }
+          },
+          (msg) => { if (loaderText) loaderText.innerText = msg; }
+        );
+
+        const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        const activities = safeParseJSON(jsonText);
+
+        if (!Array.isArray(activities) || activities.length === 0) {
+          throw new Error("Could not parse activities JSON");
+        }
+
+        await persistUnitContent(book, activityKey, activities);
+        window.lockState[cacheId] = true;
+
+        renderActivityCards(activities, book, unit, true);
+      } catch (err) {
+        renderCustomErrorUI("fs-content-area", err, "window.retryActivities");
+      }
+    }
+
+    window.retryActivities = () => {
+      if (window.currentUnitContext) {
+        loadOrGenerateUnitActivities(window.currentUnitContext.book, window.currentUnitContext.unit);
+      }
+    };
+
+    window.toggleActivityCard = (actIdx) => {
+      const body = document.getElementById(`act-body-${actIdx}`);
+      const icon = document.getElementById(`act-chevron-${actIdx}`);
+      const isHidden = body.classList.contains("hidden");
+      if (isHidden) {
+        body.classList.remove("hidden");
+        icon.classList.add("rotate-180");
+      } else {
+        body.classList.add("hidden");
+        icon.classList.remove("rotate-180");
+      }
+    };
+
+    window.toggleActivityAnswers = (actIdx) => {
+      const ansSec = document.getElementById(`act-answers-${actIdx}`);
+      const btn = document.getElementById(`act-ans-btn-${actIdx}`);
+      const isHidden = ansSec.classList.contains("hidden");
+      if (isHidden) {
+        ansSec.classList.remove("hidden");
+        btn.innerHTML = `<i data-lucide="eye-off" class="w-3 h-3"></i><span>Hide Answers</span>`;
+      } else {
+        ansSec.classList.add("hidden");
+        btn.innerHTML = `<i data-lucide="eye" class="w-3 h-3"></i><span>Show Answers</span>`;
+      }
+      safeCreateIcons();
+    };
+
+    // 1 Button: Copy ALL questions
+    window.copyAllActivityQuestions = (actIdx) => {
+      const act = window.currentActivitiesData[actIdx];
+      let text = `Activity ${act.activity_no || actIdx + 1}: ${act.title || ""}\n\n`;
+      (act.questions || []).forEach((q, idx) => {
+        text += `${idx + 1}. ${q.question} \t\t(${q.score})\n`;
+      });
+      window.copyPlainText(text.trim(), "Questions copied!");
+    };
+
+    // 1 Button: Copy ALL answers
+    window.copyAllActivityAnswers = (actIdx) => {
+      const act = window.currentActivitiesData[actIdx];
+      let text = `Activity ${act.activity_no || actIdx + 1} Answers:\n\n`;
+      (act.questions || []).forEach((q, idx) => {
+        let ans = (q.answer || "").replace(/^\s*\d+[\.\)]\s*/gm, "• ");
+        text += `Answer ${idx + 1} (${q.score} Score):\n${ans}\n\n`;
+      });
+      window.copyPlainText(text.trim(), "Answers copied!");
+    };
+
+    function renderActivityCards(activities, book, unit, isLocked) {
+      window.currentActivitiesData = activities;
+      const out = document.getElementById("fs-content-area");
+      const headerActions = document.getElementById("fs-header-actions");
+      const cacheId = `scert_activity_${book.id || 'b'}_u${unit.unit_no}`;
+
+      headerActions.innerHTML = isLocked ? `
+        <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded">Locked</span>
+        <button onclick="if(confirm('Unlock activities?')){ window.lockState['${cacheId}'] = false; loadOrGenerateUnitActivities(window.currentUnitContext.book, window.currentUnitContext.unit); }" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded text-[10px] font-bold">
+          Unlock
+        </button>
+      ` : ``;
+
+      let html = `
+        <div class="space-y-3 w-full">
+          <div class="flex items-center justify-between px-1">
+            <span class="text-[11px] font-bold uppercase text-gray-400">${activities.length} Activities (Score 5 Each)</span>
+            <span class="text-[10px] text-gray-400">Questions first</span>
+          </div>
+
+          <div class="space-y-2 w-full">
+      `;
+
+      activities.forEach((act, actIdx) => {
+        html += `
+          <div class="w-full bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+            
+            <!-- Accordion Header -->
+            <div onclick="window.toggleActivityCard(${actIdx})" class="p-3.5 cursor-pointer flex items-center justify-between hover:bg-gray-50 select-none">
+              <div class="flex items-center space-x-2 truncate">
+                <span class="px-2 py-0.5 rounded bg-amber-50 text-amber-800 font-bold text-[10px]">
+                  Act ${act.activity_no || actIdx + 1}
+                </span>
+                <h4 class="text-xs font-bold text-gray-900 truncate">${act.title || "Activity"}</h4>
+              </div>
+              <div class="flex items-center space-x-2 text-gray-400 flex-shrink-0">
+                <span class="text-[10px] font-bold">5 pts</span>
+                <i data-lucide="chevron-down" id="act-chevron-${actIdx}" class="w-3.5 h-3.5 transform transition"></i>
+              </div>
+            </div>
+
+            <!-- Body: Collapsed Default -->
+            <div id="act-body-${actIdx}" class="hidden p-4 border-t border-gray-100 bg-white space-y-4">
+              
+              <!-- Questions Header & Single Copy Button -->
+              <div>
+                <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Questions</span>
+                  <button onclick="window.copyAllActivityQuestions(${actIdx})" class="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-[10px] font-bold flex items-center space-x-1 transition">
+                    <i data-lucide="copy" class="w-3 h-3"></i>
+                    <span>Copy Qs</span>
+                  </button>
+                </div>
+
+                <!-- Left Aligned & Justified Questions -->
+                <div class="divide-y divide-gray-100 space-y-2.5 pt-1">
+                  ${(act.questions || []).map((q, qIdx) => `
+                    <div class="pt-2.5 first:pt-0 flex items-start justify-between gap-3">
+                      <div class="text-xs font-semibold text-gray-800 text-left text-justify leading-relaxed flex-1">
+                        <span class="text-gray-400 font-bold mr-1">${qIdx + 1}.</span>
+                        ${q.question}
+                      </div>
+                      <span class="text-[11px] font-bold text-gray-400 font-mono flex-shrink-0">(${q.score})</span>
+                    </div>
+                  `).join("")}
+                </div>
+              </div>
+
+              <!-- Answers Section & Single Copy Button -->
+              <div class="pt-3 border-t border-gray-100 space-y-3">
+                <div class="flex items-center justify-between">
+                  <button 
+                    id="act-ans-btn-${actIdx}"
+                    onclick="window.toggleActivityAnswers(${actIdx})" 
+                    class="px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded-lg text-[10px] font-bold flex items-center space-x-1"
+                  >
+                    <i data-lucide="eye" class="w-3 h-3"></i>
+                    <span>Show Answers</span>
+                  </button>
+
+                  <button onclick="window.copyAllActivityAnswers(${actIdx})" class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg text-[10px] font-bold flex items-center space-x-1">
+                    <i data-lucide="copy" class="w-3 h-3"></i>
+                    <span>Copy Ans</span>
+                  </button>
+                </div>
+
+                <!-- Left Aligned & Justified Bullet-Dot Answers -->
+                <div id="act-answers-${actIdx}" class="hidden space-y-3 pt-1">
+                  ${(act.questions || []).map((q, qIdx) => {
+                    const dotAnswer = (q.answer || "").replace(/^\s*\d+[\.\)]\s*/gm, "• ");
+                    return `
+                      <div class="py-1.5 border-b border-gray-100 last:border-b-0 space-y-1">
+                        <span class="text-[11px] font-bold text-gray-700">Ans ${qIdx + 1} (${q.score} pts):</span>
+                        <div class="text-xs text-gray-700 leading-relaxed text-left text-justify whitespace-pre-line pl-1">
+                          ${dotAnswer}
+                        </div>
+                      </div>
+                    `;
+                  }).join("")}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div></div>`;
+      out.innerHTML = html;
+      safeCreateIcons();
+    }
+
+    // Media Modal Actions
+    const modalMedia = document.getElementById("modal-add-media");
+    document.getElementById("btn-close-media").onclick = () => modalMedia.classList.add("hidden");
+    window.openAddMediaModal = (cardIndex) => {
+      window.activeMediaTarget = cardIndex;
+      document.getElementById("input-media-url").value = "";
+      document.getElementById("input-media-caption").value = "";
+      modalMedia.classList.remove("hidden");
+    };
+
+    document.getElementById("btn-confirm-add-media").onclick = async () => {
+      const url = document.getElementById("input-media-url").value.trim();
+      const type = document.getElementById("input-media-type").value;
+      const caption = document.getElementById("input-media-caption").value.trim();
+
+      if (!url) {
+        showToast("Enter a URL", "error");
+        return;
+      }
+
+      if (!window.currentCardsState || window.activeMediaTarget === null) return;
+      const { cards, book, unit } = window.currentCardsState;
+      const targetCard = cards[window.activeMediaTarget];
+
+      if (!targetCard.media) targetCard.media = [];
+      targetCard.media.push({ type, url, caption });
+
+      modalMedia.classList.add("hidden");
+      await persistUnitContent(book, `summary_${unit.unit_no}`, cards);
+      renderSummaryCards(cards, book, unit, true);
+      showToast("Media added");
+    };
+
+    window.handleRemoveMedia = async (cardIndex, mediaIndex) => {
+      if (!confirm("Remove media?")) return;
+      const { cards, book, unit } = window.currentCardsState;
+      cards[cardIndex].media.splice(mediaIndex, 1);
+      await persistUnitContent(book, `summary_${unit.unit_no}`, cards);
+      renderSummaryCards(cards, book, unit, true);
+    };
+
+    // ---------------- 3. QUIZ ----------------
+    async function loadOrGenerateUnitQuiz(book, unit) {
+      const quizKey = `quiz_${unit.unit_no}`;
+      const cacheId = `scert_quiz_${book.id || 'b'}_u${unit.unit_no}`;
+      const cached = getCachedUnitContent(book, quizKey);
+
+      if (cached && window.lockState[cacheId] !== false) {
+        window.lockState[cacheId] = true;
+        renderQuizCards(cached, book, unit, true);
+        return;
+      }
+
+      const out = document.getElementById("fs-content-area");
+      out.innerHTML = `
+        <div class="flex flex-col items-center justify-center space-y-2.5 text-green-600 py-16 text-center">
+          <i data-lucide="loader" class="w-7 h-7 animate-spin"></i>
+          <span class="text-xs font-bold" id="quiz-loader-text">Generating questions ordered by concepts...</span>
+        </div>
+      `;
+      safeCreateIcons();
+
+      const apiKey = localStorage.getItem("scert_gemini_key");
+      if (!apiKey) {
+        renderCustomErrorUI("fs-content-area", { message: "Key" }, "window.retryQuiz");
+        return;
+      }
+
+      const prompt = `You are a Kerala SCERT examiner.
+Create a Multiple Choice Quiz covering all concepts chronologically for Standard ${book.standard} ${book.subject}, Chapter: "${unit.title}".
+Output immediately starting with '[' without intro text:
+[
+  {
+    "concept_order": 1,
+    "question": "Question text",
+    "options": ["A", "B", "C", "D"],
+    "answer": 0,
+    "explanation": "SCERT Textbook rationale"
+  }
+]`;
+
+      try {
+        const loaderText = document.getElementById("quiz-loader-text");
+        const data = await callGeminiWithFailover(
+          apiKey,
+          {
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: "application/json" }
+          },
+          (msg) => { if (loaderText) loaderText.innerText = msg; }
+        );
+
+        const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        const quiz = safeParseJSON(jsonText);
+
+        if (!Array.isArray(quiz) || quiz.length === 0) {
+          throw new Error("Could not parse quiz JSON");
+        }
+
+        quiz.sort((a, b) => (a.concept_order || 0) - (b.concept_order || 0));
+
+        await persistUnitContent(book, quizKey, quiz);
+        window.lockState[cacheId] = true;
+
+        renderQuizCards(quiz, book, unit, true);
+      } catch (err) {
+        renderCustomErrorUI("fs-content-area", err, "window.retryQuiz");
+      }
+    }
+
+    window.retryQuiz = () => {
+      if (window.currentUnitContext) {
+        loadOrGenerateUnitQuiz(window.currentUnitContext.book, window.currentUnitContext.unit);
+      }
+    };
+
+    function renderQuizCards(quiz, book, unit, isLocked) {
+      window.currentQuizData = quiz;
+      const out = document.getElementById("fs-content-area");
+      const headerActions = document.getElementById("fs-header-actions");
+      const cacheId = `scert_quiz_${book.id || 'b'}_u${unit.unit_no}`;
+
+      headerActions.innerHTML = `
+        <div id="quiz-score-badge" class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded">
+          0 / ${quiz.length}
+        </div>
+      `;
+
+      let html = `
+        <div class="space-y-3 w-full">
+          <div class="flex items-center justify-between px-1">
+            <span class="text-[11px] font-bold uppercase text-gray-400">${quiz.length} Questions</span>
+          </div>
+
+          <div class="space-y-2.5 w-full">
+      `;
+
+      quiz.forEach((q, qIndex) => {
+        html += `
+          <div class="bg-white p-4 rounded-xl border border-gray-200 text-left space-y-2 shadow-sm w-full" id="q-card-${qIndex}">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-gray-400">Q${qIndex + 1} of ${quiz.length}</span>
+            </div>
+            <p class="font-bold text-xs text-gray-900 text-left text-justify leading-relaxed">${q.question}</p>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1" id="q-opts-${qIndex}">
+              ${q.options.map((opt, optIndex) => `
+                <button 
+                  onclick="handleAnswerSelect(${qIndex}, ${optIndex}, ${q.answer})" 
+                  class="opt-btn p-2.5 rounded-lg text-xs font-medium border border-gray-200 text-left hover:bg-gray-50 transition"
+                  data-opt-index="${optIndex}"
+                >
+                  <span class="font-bold text-gray-400 mr-1">${String.fromCharCode(65 + optIndex)}.</span>
+                  <span>${opt}</span>
+                </button>
+              `).join("")}
+            </div>
+
+            <div id="q-expl-${qIndex}" class="hidden p-2.5 bg-gray-50 rounded-lg text-xs text-gray-600 text-left text-justify">
+              ${q.explanation || "Correct answer"}
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div></div>`;
+      out.innerHTML = html;
+      safeCreateIcons();
+
+      window.quizScores = { total: quiz.length, correct: 0, answered: {} };
+    }
+
+    window.handleAnswerSelect = (qIndex, chosenIndex, correctIndex) => {
+      const optsContainer = document.getElementById(`q-opts-${qIndex}`);
+      const explBox = document.getElementById(`q-expl-${qIndex}`);
+      const buttons = optsContainer.querySelectorAll("button");
+
+      if (window.quizScores.answered[qIndex]) return;
+      window.quizScores.answered[qIndex] = true;
+
+      buttons.forEach((btn, idx) => {
+        btn.disabled = true;
+        if (idx === correctIndex) {
+          btn.className = "p-2.5 rounded-lg text-xs font-bold bg-green-500 text-white text-left";
+        } else if (idx === chosenIndex) {
+          btn.className = "p-2.5 rounded-lg text-xs font-bold bg-red-500 text-white text-left";
+        } else {
+          btn.className = "p-2.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-400 text-left opacity-40";
+        }
+      });
+
+      if (chosenIndex === correctIndex) window.quizScores.correct += 1;
+      document.getElementById("quiz-score-badge").innerText = `${window.quizScores.correct} / ${window.quizScores.total}`;
+      explBox.classList.remove("hidden");
+    };
+
+    window.loadOrGenerateConceptSummary = loadOrGenerateConceptSummary;
+    window.loadOrGenerateUnitActivities = loadOrGenerateUnitActivities;
+    window.loadOrGenerateUnitQuiz = loadOrGenerateUnitQuiz;
+
+    function renderStudentPortal() {
+      document.getElementById("label-books-count").innerText = `${uploadedBooks.length} Books`;
+      renderStandardsPills();
+      renderSubjects();
+    }
+
+    initFirebase();
+  </script>
+</body>
+</html>
