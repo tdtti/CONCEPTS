@@ -2,13 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>SCERT Kerala AI Learning Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <title>VidyaAI • SCERT Kerala</title>
+
+  <!-- PWA & Mobile Web App Meta Tags -->
+  <meta name="theme-color" content="#4f46e5" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="VidyaAI" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <!-- Inline Web App Manifest (Installable PWA) -->
+  <link rel="manifest" href='data:application/manifest+json,{"name":"VidyaAI SCERT Kerala","short_name":"VidyaAI","start_url":".","display":"standalone","background_color":"#f9fafb","theme_color":"#4f46e5","description":"Standards 1 to 10 AI Learning Portal","icons":[{"src":"https://api.iconify.design/lucide:sparkles.svg?color=%23ffffff&height=192","sizes":"192x192","type":"image/svg+xml"},{"src":"https://api.iconify.design/lucide:sparkles.svg?color=%23ffffff&height=512","sizes":"512x512","type":"image/svg+xml"}]}' />
 
   <!-- Precompiled Tailwind CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" />
 
-  <!-- Lucide Icons (Reliable UMD Browser Bundle with Failover) -->
+  <!-- Lucide Icons -->
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.378.0/dist/umd/lucide.min.js"></script>
   <script>
     if (typeof lucide === "undefined") {
@@ -33,19 +43,99 @@
     .text-justify { text-align: justify; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .cursor-grab { cursor: grab; }
+    .cursor-grabbing { cursor: grabbing; user-select: none; }
+    
+    /* Native Fullscreen Video Container Styles */
+    :fullscreen, :-webkit-full-screen {
+      width: 100vw !important;
+      height: 100vh !important;
+      background: black !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    :fullscreen iframe, :-webkit-full-screen iframe {
+      width: 100% !important;
+      height: 136% !important;
+      top: -18% !important;
+    }
   </style>
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
 
-  <!-- ================= TOAST NOTIFICATION CONTAINER ================= -->
-  <div id="toast-container" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col space-y-2 pointer-events-none w-11/12 max-w-sm"></div>
+  <!-- ================= STYLED TOAST NOTIFICATION CONTAINER ================= -->
+  <div id="toast-container" class="fixed top-3 left-1/2 transform -translate-x-1/2 z-[100000] flex flex-col space-y-2 pointer-events-none w-11/12 max-w-sm"></div>
+
+  <!-- ================= TOP-ONLY CONFIRMATION DIALOG (ALWAYS ON TOP OF FULLSCREEN) ================= -->
+  <div id="modal-custom-dialog" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-start justify-center p-3 pt-4 sm:pt-6" style="z-index: 999999 !important;">
+    <div class="bg-white max-w-sm w-full rounded-2xl shadow-2xl border border-gray-200 p-4 space-y-3 transform transition-all duration-300 ease-out animate-in slide-in-from-top-4">
+      <div class="flex items-start space-x-3">
+        <div id="dialog-icon-container" class="w-9 h-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <h3 class="text-xs sm:text-sm font-extrabold text-gray-900" id="dialog-title">Delete Item</h3>
+          <p class="text-[11px] text-gray-500 mt-0.5 leading-relaxed" id="dialog-message">Are you sure you want to proceed?</p>
+        </div>
+      </div>
+      <div class="flex justify-end space-x-2 pt-2 border-t border-gray-100">
+        <button id="dialog-cancel-btn" class="px-3.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold transition">
+          Cancel
+        </button>
+        <button id="dialog-confirm-btn" class="px-4 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition">
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= IMAGE FULLSCREEN LIGHTBOX MODAL ================= -->
+  <div id="modal-image-lightbox" class="fixed inset-0 bg-black/95 hidden flex flex-col items-center justify-center p-3 select-none" style="z-index: 999990 !important;">
+    <div class="absolute top-4 right-4 flex items-center space-x-2 z-10">
+      <button onclick="window.closeImageLightbox()" class="p-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+    <div class="max-w-4xl max-h-[85vh] flex flex-col items-center justify-center">
+      <img id="lightbox-img" src="" class="max-h-[80vh] max-w-[92vw] object-contain rounded-xl shadow-2xl" />
+      <p id="lightbox-caption" class="text-white text-xs mt-3 text-center font-medium max-w-xl px-2"></p>
+    </div>
+  </div>
+
+  <!-- ================= IOS PWA INSTALL INSTRUCTIONS MODAL ================= -->
+  <div id="modal-ios-install" class="fixed inset-0 bg-gray-900 bg-opacity-60 z-50 flex items-center justify-center p-4 hidden" style="z-index: 999995 !important;">
+    <div class="bg-white max-w-xs w-full rounded-2xl shadow-2xl border border-gray-200 p-5 space-y-4 text-center">
+      <div class="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 mx-auto flex items-center justify-center">
+        <i data-lucide="smartphone" class="w-5 h-5"></i>
+      </div>
+      <h3 class="text-sm font-extrabold text-gray-900">Install VidyaAI App</h3>
+      <div class="text-xs text-gray-600 text-left space-y-2.5 bg-gray-50 p-3 rounded-xl border border-gray-200">
+        <div class="flex items-center space-x-2">
+          <span class="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[10px] flex items-center justify-center">1</span>
+          <span>Tap the <b>Share button</b> in Safari</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[10px] flex items-center justify-center">2</span>
+          <span>Scroll down & tap <b>"Add to Home Screen"</b></span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[10px] flex items-center justify-center">3</span>
+          <span>Tap <b>Add</b> in the top right</span>
+        </div>
+      </div>
+      <button onclick="document.getElementById('modal-ios-install').classList.add('hidden')" class="w-full py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold transition">
+        Done
+      </button>
+    </div>
+  </div>
 
   <!-- ================= FULL-SCREEN IMMERSIVE LEARNING OVERLAY ================= -->
   <div id="student-fullscreen-overlay" class="hidden fixed inset-0 z-50 bg-gray-50 overflow-y-auto flex flex-col">
     <!-- Top Mobile App Header -->
     <header class="bg-white border-b border-gray-200 sticky top-0 z-40 px-3 sm:px-6 py-2.5 flex items-center justify-between shadow-sm">
       <div class="flex items-center space-x-2.5 min-w-0">
-        <button onclick="window.closeFullScreenView()" class="w-9 h-9 rounded-xl bg-gray-100 active:bg-gray-200 flex items-center justify-center flex-shrink-0 transition">
+        <button onclick="window.closeFullScreenView()" class="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center flex-shrink-0 transition">
           <i data-lucide="arrow-left" class="w-4 h-4 text-gray-700"></i>
         </button>
         <div class="min-w-0">
@@ -58,24 +148,20 @@
         </div>
       </div>
 
-      <div class="flex items-center space-x-1.5 flex-shrink-0" id="fs-header-actions">
-        <!-- Injected status / locks -->
-      </div>
+      <div class="flex items-center space-x-1.5 flex-shrink-0" id="fs-header-actions"></div>
     </header>
 
     <!-- Main Content Container -->
     <main class="max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-6 flex-1 w-full space-y-4">
-      <div id="fs-content-area" class="w-full">
-        <!-- Rendered modules -->
-      </div>
+      <div id="fs-content-area" class="w-full"></div>
     </main>
   </div>
 
   <!-- ================= TOP APP BAR ================= -->
   <header class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
-    <div class="max-w-5xl mx-auto px-3 sm:px-6 h-14 flex items-center justify-between">
+    <div class="max-w-6xl mx-auto px-3 sm:px-6 h-14 flex items-center justify-between">
       
-      <!-- Logo / Title -->
+      <!-- Brand -->
       <div class="flex items-center space-x-2">
         <div class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md">
           <i data-lucide="sparkles" class="w-4 h-4"></i>
@@ -83,7 +169,7 @@
         <span class="text-sm font-extrabold text-gray-900 tracking-tight">വിദ്യAI</span>
       </div>
 
-      <!-- Segmented Tab Switcher (Mobile App Style) -->
+      <!-- Segmented Tab Switcher -->
       <div class="flex bg-gray-100 p-1 rounded-xl border border-gray-200 space-x-1">
         <button id="btn-tab-student" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-indigo-700 shadow-sm">
           <i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i>
@@ -95,15 +181,21 @@
         </button>
       </div>
 
-      <!-- Settings Icon Button -->
-      <button id="btn-open-settings" class="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition" title="Settings">
-        <i data-lucide="settings" class="w-4 h-4"></i>
-      </button>
+      <!-- Actions: Install + Settings -->
+      <div class="flex items-center space-x-1.5">
+        <button id="btn-install-app" class="px-2.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold flex items-center space-x-1 transition" title="Install App">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          <span class="hidden sm:inline">Install</span>
+        </button>
+        <button id="btn-open-settings" class="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition" title="Settings">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+        </button>
+      </div>
     </div>
   </header>
 
   <!-- ================= MAIN APP BODY ================= -->
-  <main class="max-w-5xl mx-auto px-3 sm:px-6 py-4 flex-1 w-full">
+  <main class="max-w-6xl mx-auto px-3 sm:px-6 py-4 flex-1 w-full">
 
     <!-- ================= STUDENT VIEW ================= -->
     <div id="view-student" class="space-y-4">
@@ -114,17 +206,14 @@
           <span class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Class (സ്റ്റാൻഡേർഡ്)</span>
           <span id="label-books-count" class="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-md">Checking...</span>
         </div>
-        <div class="flex space-x-1.5 overflow-x-auto no-scrollbar py-0.5" id="standard-pill-container">
-          <!-- 1 to 10 Pills -->
-        </div>
+        <div class="flex space-x-1.5 overflow-x-auto no-scrollbar py-0.5" id="standard-pill-container"></div>
       </div>
 
-      <!-- Main Layout: Sidebar & Unit Content -->
+      <!-- Responsive Desktop Split / Mobile Stack Layout -->
       <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
         
-        <!-- Subject & Unit Selector -->
+        <!-- Left: Subjects & Units Selection -->
         <div class="md:col-span-5 space-y-3">
-          <!-- Subjects List (Chips) -->
           <div class="bg-white p-3 rounded-2xl border border-gray-200 shadow-sm">
             <span class="text-[11px] font-bold uppercase tracking-wider text-gray-400 block mb-2 px-1">Subject</span>
             <div id="subjects-list" class="flex flex-wrap gap-1.5">
@@ -132,7 +221,6 @@
             </div>
           </div>
 
-          <!-- Units Accordion / List -->
           <div class="bg-white p-3 rounded-2xl border border-gray-200 shadow-sm">
             <span class="text-[11px] font-bold uppercase tracking-wider text-gray-400 block mb-2 px-1">Units (പാഠങ്ങൾ)</span>
             <div id="units-list" class="space-y-1.5 max-h-96 overflow-y-auto no-scrollbar">
@@ -141,7 +229,7 @@
           </div>
         </div>
 
-        <!-- Right / Canvas Area -->
+        <!-- Right: Unit Workspace / Fullscreen Triggers -->
         <div class="md:col-span-7">
           <div id="learning-canvas" class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm min-h-80 flex flex-col justify-center items-center text-center">
             <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-2">
@@ -205,20 +293,18 @@
           <span class="text-xs font-bold text-gray-900">Stored Textbooks</span>
           <span id="firestore-badge" class="text-[10px] text-gray-400 font-medium">Connecting...</span>
         </div>
-        <div id="teacher-library-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-          <!-- Populated dynamically -->
-        </div>
+        <div id="teacher-library-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5"></div>
       </div>
 
     </div>
   </main>
 
-  <!-- ================= ADD MEDIA MODAL ================= -->
-  <div id="modal-add-media" class="fixed inset-0 bg-gray-900 bg-opacity-60 z-50 flex items-center justify-center p-3 hidden">
-    <div class="bg-white max-w-sm w-full rounded-2xl shadow-xl border border-gray-200 p-5 space-y-3">
+  <!-- ================= ADD MEDIA MODAL (MINIMALIST ICONS) ================= -->
+  <div id="modal-add-media" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden flex items-center justify-center p-3" style="z-index: 999995 !important;">
+    <div class="bg-white max-w-sm w-full rounded-2xl shadow-xl border border-gray-200 p-5 space-y-3.5">
       <div class="flex justify-between items-center pb-2 border-b border-gray-100">
         <h3 class="text-xs font-bold text-gray-900 flex items-center space-x-1.5">
-          <i data-lucide="image" class="w-4 h-4 text-indigo-600"></i>
+          <i data-lucide="paperclip" class="w-4 h-4 text-indigo-600"></i>
           <span>Attach Media</span>
         </h3>
         <button id="btn-close-media" class="text-gray-400 hover:text-gray-600">
@@ -226,22 +312,88 @@
         </button>
       </div>
 
-      <div>
-        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Type</label>
-        <select id="input-media-type" class="w-full text-xs border border-gray-300 rounded-xl px-2.5 py-2 bg-white focus:outline-none">
-          <option value="video">Video (YouTube)</option>
-          <option value="image">Image URL</option>
-        </select>
+      <!-- 3-Way Source Tabs with ICONS ONLY -->
+      <div class="grid grid-cols-3 bg-gray-100 p-1 rounded-xl border border-gray-200 text-center gap-1">
+        <button id="tab-src-url" onclick="window.switchMediaSourceTab('url')" class="py-2 rounded-lg bg-white text-indigo-700 shadow-sm flex items-center justify-center transition" title="Web / Drive Link">
+          <i data-lucide="globe" class="w-4 h-4"></i>
+        </button>
+        <button id="tab-src-drive" onclick="window.switchMediaSourceTab('drive')" class="py-2 rounded-lg text-gray-500 hover:text-gray-900 flex items-center justify-center transition" title="Drive / Device Files">
+          <i data-lucide="folder-open" class="w-4 h-4"></i>
+        </button>
+        <button id="tab-src-camera" onclick="window.switchMediaSourceTab('camera')" class="py-2 rounded-lg text-gray-500 hover:text-gray-900 flex items-center justify-center transition" title="Camera">
+          <i data-lucide="camera" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- 1. URL / Google Drive Share Link Panel (Icon Labels) -->
+      <div id="panel-src-url" class="space-y-3">
+        <div>
+          <label class="flex items-center text-gray-400 mb-1" title="Media Type">
+            <i data-lucide="film" class="w-3.5 h-3.5"></i>
+          </label>
+          <select id="input-media-type" class="w-full text-xs border border-gray-300 rounded-xl px-2.5 py-2 bg-white focus:outline-none" onchange="window.toggleVideoTimeInputs(this.value)">
+            <option value="video">Video (YouTube / Drive Video)</option>
+            <option value="image">Image (Web URL / Drive Photo)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="flex items-center text-gray-400 mb-1" title="Web / Drive Link">
+            <i data-lucide="link" class="w-3.5 h-3.5"></i>
+          </label>
+          <input type="url" id="input-media-url" placeholder="https://..." class="w-full text-xs border border-gray-300 rounded-xl px-3 py-2 focus:outline-none" />
+        </div>
+
+        <!-- Video Start & End Range Controls (Icon Labels) -->
+        <div id="video-time-controls" class="grid grid-cols-2 gap-2 pt-0.5">
+          <div>
+            <label class="flex items-center text-gray-400 mb-1" title="Start Time">
+              <i data-lucide="play-circle" class="w-3.5 h-3.5 text-indigo-600"></i>
+            </label>
+            <input type="text" id="input-video-start" placeholder="00:10" class="w-full text-xs border border-gray-300 rounded-xl px-2.5 py-1.5 focus:outline-none" />
+          </div>
+          <div>
+            <label class="flex items-center text-gray-400 mb-1" title="End Time">
+              <i data-lucide="stop-circle" class="w-3.5 h-3.5 text-red-500"></i>
+            </label>
+            <input type="text" id="input-video-end" placeholder="01:30" class="w-full text-xs border border-gray-300 rounded-xl px-2.5 py-1.5 focus:outline-none" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Device / Google Drive File Picker Panel -->
+      <div id="panel-src-drive" class="hidden space-y-2.5">
+        <input type="file" id="input-media-file" accept="image/*,video/*" class="hidden" onchange="window.handleDeviceFileSelect(this)" />
+        <div onclick="document.getElementById('input-media-file').click()" class="border-2 border-dashed border-gray-300 hover:border-indigo-400 p-4 rounded-xl text-center cursor-pointer bg-gray-50 hover:bg-indigo-50/40 transition">
+          <i data-lucide="folder-open" class="w-7 h-7 text-indigo-500 mx-auto mb-1"></i>
+          <span class="text-xs font-bold text-gray-800 block" id="drive-file-label">Choose File</span>
+        </div>
+      </div>
+
+      <!-- 3. Direct Camera Capture Panel -->
+      <div id="panel-src-camera" class="hidden space-y-2.5">
+        <input type="file" id="input-media-camera" accept="image/*" capture="environment" class="hidden" onchange="window.handleCameraCapture(this)" />
+        <div onclick="document.getElementById('input-media-camera').click()" class="border-2 border-dashed border-gray-300 hover:border-indigo-400 p-4 rounded-xl text-center cursor-pointer bg-gray-50 hover:bg-indigo-50/40 transition">
+          <i data-lucide="camera" class="w-7 h-7 text-indigo-500 mx-auto mb-1"></i>
+          <span class="text-xs font-bold text-gray-800 block" id="camera-file-label">Take Photo</span>
+        </div>
+      </div>
+
+      <!-- Image Preview Thumbnail (for Files & Camera) -->
+      <div id="media-preview-container" class="hidden pt-1">
+        <div class="relative w-full rounded-xl overflow-hidden bg-black" style="aspect-ratio: 16/9;">
+          <img id="media-preview-img" src="" class="w-full h-full object-cover" />
+          <button onclick="window.clearSelectedFileMedia()" class="absolute top-2 right-2 p-1 bg-black/70 text-white rounded-md">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
       </div>
 
       <div>
-        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Web URL</label>
-        <input type="url" id="input-media-url" placeholder="https://..." class="w-full text-xs border border-gray-300 rounded-xl px-3 py-2 focus:outline-none" />
-      </div>
-
-      <div>
-        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Caption (Optional)</label>
-        <input type="text" id="input-media-caption" placeholder="Label / Diagram" class="w-full text-xs border border-gray-300 rounded-xl px-3 py-2 focus:outline-none" />
+        <label class="flex items-center text-gray-400 mb-1" title="Caption">
+          <i data-lucide="type" class="w-3.5 h-3.5"></i>
+        </label>
+        <input type="text" id="input-media-caption" placeholder="Caption / Label" class="w-full text-xs border border-gray-300 rounded-xl px-3 py-2 focus:outline-none" />
       </div>
 
       <div class="pt-1">
@@ -253,7 +405,7 @@
   </div>
 
   <!-- ================= CONFIG MODAL ================= -->
-  <div id="modal-settings" class="fixed inset-0 bg-gray-900 bg-opacity-60 z-50 flex items-center justify-center p-3 hidden">
+  <div id="modal-settings" class="fixed inset-0 bg-gray-900 bg-opacity-60 z-50 flex items-center justify-center p-3 hidden" style="z-index: 999995 !important;">
     <div class="bg-white max-w-sm w-full rounded-2xl shadow-xl border border-gray-200 p-5 space-y-3">
       <div class="flex justify-between items-center pb-2 border-b border-gray-100">
         <h3 class="text-xs font-bold text-gray-900 flex items-center space-x-1.5">
@@ -325,21 +477,125 @@
     window.currentActivitiesData = [];
     window.currentQuizData = [];
 
-    // SAFE ICON LOADER WRAPPER (Prevents 'lucide is not defined' crash)
+    window.activeMediaSourceTab = 'url';
+    window.stagedFileMedia = null;
+
+    // ---------------- PWA SERVICE WORKER ----------------
+    if ('serviceWorker' in navigator) {
+      const swCode = `
+        self.addEventListener('install', (e) => self.skipWaiting());
+        self.addEventListener('activate', (e) => clients.claim());
+        self.addEventListener('fetch', (e) => {});
+      `;
+      const blob = new Blob([swCode], { type: 'application/javascript' });
+      navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+    }
+
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+    });
+
+    const installBtn = document.getElementById("btn-install-app");
+    if (installBtn) {
+      installBtn.onclick = async () => {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (isIOS) {
+          document.getElementById('modal-ios-install').classList.remove('hidden');
+          safeCreateIcons();
+          return;
+        }
+
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          if (outcome === 'accepted') {
+            showToast("App installed successfully!");
+          }
+          deferredPrompt = null;
+        } else {
+          showToast("Tap browser menu (⋮) -> 'Install App'", "info");
+        }
+      };
+    }
+
     function safeCreateIcons() {
       if (typeof lucide !== "undefined" && lucide && typeof lucide.createIcons === "function") {
         lucide.createIcons();
       }
     }
-
-    // Call safely on load
     safeCreateIcons();
 
-    // ---------------- ROBUST JSON CLEANER & EXTRACTOR ----------------
+    // ---------------- TOP-ONLY CONFIRMATION MODAL ----------------
+    window.showConfirmDialog = ({ title = "Delete Item", message = "Are you sure you want to proceed?", confirmText = "Delete", isDanger = true }) => {
+      return new Promise((resolve) => {
+        const modal = document.getElementById("modal-custom-dialog");
+        const titleEl = document.getElementById("dialog-title");
+        const msgEl = document.getElementById("dialog-message");
+        const confirmBtn = document.getElementById("dialog-confirm-btn");
+        const cancelBtn = document.getElementById("dialog-cancel-btn");
+        const iconContainer = document.getElementById("dialog-icon-container");
+
+        titleEl.innerText = title;
+        msgEl.innerText = message;
+        confirmBtn.innerText = confirmText;
+
+        if (isDanger) {
+          confirmBtn.className = "px-4 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition";
+          iconContainer.className = "w-9 h-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0 mt-0.5";
+          iconContainer.innerHTML = `<i data-lucide="trash-2" class="w-4 h-4"></i>`;
+        } else {
+          confirmBtn.className = "px-4 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition";
+          iconContainer.className = "w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0 mt-0.5";
+          iconContainer.innerHTML = `<i data-lucide="help-circle" class="w-4 h-4"></i>`;
+        }
+        safeCreateIcons();
+
+        modal.classList.remove("hidden");
+
+        const cleanup = (result) => {
+          modal.classList.add("hidden");
+          confirmBtn.onclick = null;
+          cancelBtn.onclick = null;
+          resolve(result);
+        };
+
+        confirmBtn.onclick = () => cleanup(true);
+        cancelBtn.onclick = () => cleanup(false);
+      });
+    };
+
+    // ---------------- IMAGE FULLSCREEN LIGHTBOX ----------------
+    window.openImageLightbox = (url, caption = "") => {
+      const modal = document.getElementById("modal-image-lightbox");
+      const img = document.getElementById("lightbox-img");
+      const cap = document.getElementById("lightbox-caption");
+      img.src = url;
+      cap.innerText = caption;
+      modal.classList.remove("hidden");
+      safeCreateIcons();
+    };
+
+    window.closeImageLightbox = () => {
+      document.getElementById("modal-image-lightbox").classList.add("hidden");
+    };
+
+    // ---------------- FULLSCREEN TOGGLE (FOR VIDEOS) ----------------
+    window.toggleMediaFullscreen = (containerId) => {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      if (!document.fullscreenElement) {
+        if (el.requestFullscreen) el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    };
+
     function safeParseJSON(rawText) {
       if (!rawText || typeof rawText !== "string") return null;
       let clean = rawText.trim();
-      
       clean = clean.replace(/```json/gi, "").replace(/```/g, "").trim();
 
       const firstBracket = clean.indexOf("[");
@@ -362,7 +618,6 @@
       return JSON.parse(clean);
     }
 
-    // ---------------- STYLED TOAST NOTIFICATION ----------------
     window.showToast = (message, type = "success") => {
       const container = document.getElementById("toast-container");
       const toast = document.createElement("div");
@@ -381,7 +636,6 @@
       }, 2600);
     };
 
-    // Clean plain-text copy
     window.copyPlainText = (text, successMsg = "Copied!") => {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(() => showToast(successMsg)).catch(() => fallbackCopy(text, successMsg));
@@ -415,14 +669,164 @@
       return m;
     }
 
-    function getEmbedUrl(url) {
+    function parseTimestampToSeconds(val) {
+      if (!val) return null;
+      val = String(val).trim();
+      if (val.includes(':')) {
+        const parts = val.split(':').map(Number);
+        if (parts.length === 2) return (parts[0] || 0) * 60 + (parts[1] || 0);
+        if (parts.length === 3) return (parts[0] || 0) * 3600 + (parts[1] || 0) * 60 + (parts[2] || 0);
+      }
+      const num = parseInt(val, 10);
+      return isNaN(num) ? null : num;
+    }
+
+    // ---------------- SMART GOOGLE DRIVE & YOUTUBE URL PARSER ----------------
+    function getEmbedUrl(url, startSec = null, endSec = null) {
       if (!url) return null;
+
+      const driveMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+      if (url.includes('drive.google.com') && driveMatch && driveMatch[1]) {
+        return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
+      }
+
       const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
       if (ytMatch) {
-        return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?autoplay=0&controls=0&rel=0&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&showinfo=0&playsinline=1`;
+        const videoId = ytMatch[1];
+        let params = new URLSearchParams({
+          autoplay: '0',
+          controls: '0',
+          rel: '0',
+          modestbranding: '1',
+          playsinline: '1',
+          iv_load_policy: '3',
+          disablekb: '1'
+        });
+        if (startSec !== null && startSec !== undefined && startSec !== '') params.append('start', startSec);
+        if (endSec !== null && endSec !== undefined && endSec !== '') params.append('end', endSec);
+        return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
       }
       return url;
     }
+
+    function getImageUrl(url) {
+      if (!url) return '';
+      const driveMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+      if (url.includes('drive.google.com') && driveMatch && driveMatch[1]) {
+        return `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=w1200`;
+      }
+      return url;
+    }
+
+    function compressImageFile(file, maxWidth = 1000, quality = 0.7) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (e) => {
+          const img = new Image();
+          img.src = e.target.result;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.onerror = reject;
+        };
+        reader.onerror = reject;
+      });
+    }
+
+    // ---------------- MEDIA SOURCE TABS (ICONS ONLY) ----------------
+    window.switchMediaSourceTab = (tab) => {
+      window.activeMediaSourceTab = tab;
+      const tUrl = document.getElementById("tab-src-url");
+      const tDrive = document.getElementById("tab-src-drive");
+      const tCam = document.getElementById("tab-src-camera");
+      const pUrl = document.getElementById("panel-src-url");
+      const pDrive = document.getElementById("panel-src-drive");
+      const pCam = document.getElementById("panel-src-camera");
+
+      const inactiveClass = "py-2 rounded-lg text-gray-500 hover:text-gray-900 flex items-center justify-center transition";
+      const activeClass = "py-2 rounded-lg bg-white text-indigo-700 shadow-sm flex items-center justify-center transition";
+
+      tUrl.className = tab === 'url' ? activeClass : inactiveClass;
+      tDrive.className = tab === 'drive' ? activeClass : inactiveClass;
+      tCam.className = tab === 'camera' ? activeClass : inactiveClass;
+
+      if (tab === 'url') {
+        pUrl.classList.remove('hidden');
+        pDrive.classList.add('hidden');
+        pCam.classList.add('hidden');
+      } else if (tab === 'drive') {
+        pUrl.classList.add('hidden');
+        pDrive.classList.remove('hidden');
+        pCam.classList.add('hidden');
+      } else {
+        pUrl.classList.add('hidden');
+        pDrive.classList.add('hidden');
+        pCam.classList.remove('hidden');
+      }
+      safeCreateIcons();
+    };
+
+    window.handleCameraCapture = async (input) => {
+      const file = input.files[0];
+      if (!file) return;
+      try {
+        showToast("Processing photo...");
+        const compressedBase64 = await compressImageFile(file);
+        window.stagedFileMedia = { type: 'image', url: compressedBase64 };
+        document.getElementById("media-preview-img").src = compressedBase64;
+        document.getElementById("media-preview-container").classList.remove("hidden");
+        document.getElementById("camera-file-label").innerText = "Photo Captured ✓";
+      } catch (err) {
+        showToast("Error capturing photo", "error");
+      }
+    };
+
+    window.handleDeviceFileSelect = async (input) => {
+      const file = input.files[0];
+      if (!file) return;
+
+      if (file.type.startsWith('image/')) {
+        try {
+          showToast("Compressing image...");
+          const compressed = await compressImageFile(file);
+          window.stagedFileMedia = { type: 'image', url: compressed };
+          document.getElementById("media-preview-img").src = compressed;
+          document.getElementById("media-preview-container").classList.remove("hidden");
+          document.getElementById("drive-file-label").innerText = file.name;
+        } catch (err) {
+          showToast("Error reading file", "error");
+        }
+      } else if (file.type.startsWith('video/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          window.stagedFileMedia = { type: 'video', url: e.target.result };
+          document.getElementById("drive-file-label").innerText = file.name + " (Video)";
+          showToast("Video selected!");
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
+    window.clearSelectedFileMedia = () => {
+      window.stagedFileMedia = null;
+      document.getElementById("media-preview-container").classList.add("hidden");
+      document.getElementById("camera-file-label").innerText = "Take Photo";
+      document.getElementById("drive-file-label").innerText = "Choose File";
+      document.getElementById("input-media-camera").value = "";
+      document.getElementById("input-media-file").value = "";
+    };
 
     let cachedLiveModels = null;
     async function getAvailableGeminiModels(apiKey) {
@@ -442,9 +846,7 @@
             }
           }
         }
-      } catch (e) {
-        console.warn(e);
-      }
+      } catch (e) {}
       return ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"];
     }
 
@@ -461,7 +863,7 @@
 
         const model = candidateModels[mIdx];
         if (onStatusUpdate && (mIdx > 0 || attempt > 1)) {
-          onStatusUpdate(`Busy. Connecting via ${model}...`);
+          onStatusUpdate(`Connecting via ${model}...`);
         }
 
         try {
@@ -601,7 +1003,7 @@
           snapshot.forEach((doc) => uploadedBooks.push({ id: doc.id, ...doc.data() }));
           renderTeacherLibrary();
           renderStudentPortal();
-        }, (err) => {
+        }, () => {
           badge.innerText = "Offline";
           badge.className = "text-[10px] text-red-500 font-bold";
         });
@@ -611,7 +1013,14 @@
     }
 
     window.deleteBookFromFirestore = async (bookId, bookTitle) => {
-      if (!confirm(`Delete "${bookTitle}"?`)) return;
+      const confirmed = await window.showConfirmDialog({
+        title: "Delete Textbook",
+        message: `Permanently delete "${bookTitle}" and all its saved syllabus units?`,
+        confirmText: "Delete",
+        isDanger: true
+      });
+      if (!confirmed) return;
+
       try {
         if (db) {
           await deleteDoc(doc(db, "textbooks", bookId));
@@ -732,7 +1141,6 @@ Front pages:
       safeCreateIcons();
     }
 
-    // Save Book
     document.getElementById("btn-save-firestore").onclick = async () => {
       const btn = document.getElementById("btn-save-firestore");
       btn.disabled = true;
@@ -803,7 +1211,7 @@ Front pages:
       safeCreateIcons();
     }
 
-    // ---------------- STUDENT PORTAL (MOBILE FIRST) ----------------
+    // ---------------- STUDENT PORTAL (MOBILE & DESKTOP) ----------------
     function renderStandardsPills() {
       const container = document.getElementById("standard-pill-container");
       container.innerHTML = "";
@@ -880,7 +1288,6 @@ Front pages:
       safeCreateIcons();
     }
 
-    // Full screen overlay toggle
     window.openFullScreenView = (moduleTitle) => {
       const { book, unit } = window.currentUnitContext;
       const overlay = document.getElementById("student-fullscreen-overlay");
@@ -960,7 +1367,6 @@ Front pages:
       };
     }
 
-    // Local/Firestore caching
     async function persistUnitContent(book, unitKey, payload) {
       if (book.id && db) {
         try {
@@ -980,7 +1386,6 @@ Front pages:
       return null;
     }
 
-    // ---------------- RESTRUCTURED STYLED ERROR COMPONENT (NO RAW EMBEDDED DUMPS) ----------------
     function renderCustomErrorUI(containerId, error, retryFnName) {
       const out = document.getElementById(containerId);
       let title = "Connection Notice";
@@ -1038,7 +1443,6 @@ Front pages:
         return;
       }
 
-      // STRICT INSTRUCTION: MUST GENERATE AT LEAST 12 CONCEPTS
       const prompt = `You are a Kerala SCERT master teacher.
 For Standard ${book.standard} ${book.subject}, Chapter: "${unit.title}":
 GENERATE AT LEAST 12 CONCEPTS (from 1 to 12 or more). You MUST NOT output fewer than 12 concepts.
@@ -1107,26 +1511,88 @@ OUTPUT RULES: Start your response with '[' immediately. Do not write any intro t
       }
     };
 
+    window.scrollGalleryTrack = (idx, direction) => {
+      const track = document.getElementById(`gallery-track-${idx}`);
+      if (track) {
+        track.scrollBy({ left: direction * 280, behavior: 'smooth' });
+      }
+    };
+
+    window.initDraggableGalleries = () => {
+      document.querySelectorAll('.gallery-drag-track').forEach((track) => {
+        let isDown = false;
+        let startX, scrollLeft;
+
+        track.addEventListener('mousedown', (e) => {
+          isDown = true;
+          track.classList.add('cursor-grabbing');
+          startX = e.pageX - track.offsetLeft;
+          scrollLeft = track.scrollLeft;
+        });
+
+        track.addEventListener('mouseleave', () => {
+          isDown = false;
+          track.classList.remove('cursor-grabbing');
+        });
+
+        track.addEventListener('mouseup', () => {
+          isDown = false;
+          track.classList.remove('cursor-grabbing');
+        });
+
+        track.addEventListener('mousemove', (e) => {
+          if (!isDown) return;
+          e.preventDefault();
+          const x = e.pageX - track.offsetLeft;
+          const walk = (x - startX) * 1.5;
+          track.scrollLeft = scrollLeft - walk;
+        });
+      });
+    };
+
     function renderSummaryCards(cards, book, unit, isLocked) {
       const out = document.getElementById("fs-content-area");
       const headerActions = document.getElementById("fs-header-actions");
       const cacheId = `scert_summary_${book.id || 'b'}_u${unit.unit_no}`;
 
+      // LOCKED / UNLOCKED REPLACED WITH ICONS ONLY
       headerActions.innerHTML = isLocked ? `
-        <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded">Locked</span>
-        <button onclick="if(confirm('Unlock to regenerate?')){ window.lockState['${cacheId}'] = false; loadOrGenerateConceptSummary(window.currentUnitContext.book, window.currentUnitContext.unit); }" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded text-[10px] font-bold">
-          Unlock
+        <span class="p-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center shadow-sm" title="Locked">
+          <i data-lucide="lock" class="w-3.5 h-3.5 text-emerald-600"></i>
+        </span>
+        <button id="btn-unlock-summary" class="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition" title="Unlock">
+          <i data-lucide="unlock" class="w-3.5 h-3.5"></i>
         </button>
-      ` : ``;
+      ` : `
+        <span class="p-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center shadow-sm" title="Unlocked">
+          <i data-lucide="unlock" class="w-3.5 h-3.5 text-amber-600"></i>
+        </span>
+      `;
+
+      const unlockBtn = document.getElementById("btn-unlock-summary");
+      if (unlockBtn) {
+        unlockBtn.onclick = async () => {
+          const ok = await window.showConfirmDialog({
+            title: "Unlock Concept Cards",
+            message: "Unlock this unit summary to regenerate cards? It will auto-lock once completed.",
+            confirmText: "Unlock",
+            isDanger: false
+          });
+          if (ok) {
+            window.lockState[cacheId] = false;
+            loadOrGenerateConceptSummary(window.currentUnitContext.book, window.currentUnitContext.unit);
+          }
+        };
+      }
 
       let html = `
         <div class="space-y-3 w-full">
           <div class="flex items-center justify-between px-1">
             <span class="text-[11px] font-bold uppercase text-gray-400">${cards.length} Concepts</span>
-            <span class="text-[10px] text-gray-400">Tap to expand</span>
+            <span class="text-[10px] text-gray-400">Tap to expand • Media gallery</span>
           </div>
 
-          <div class="space-y-2 w-full">
+          <div class="space-y-2.5 w-full">
       `;
 
       cards.forEach((card, idx) => {
@@ -1140,50 +1606,108 @@ OUTPUT RULES: Start your response with '[' immediately. Do not write any intro t
         html += `
           <div class="w-full bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
             
-            <!-- Header: Tap to Expand -->
-            <div onclick="window.toggleConceptCard(${idx})" class="p-3.5 cursor-pointer flex items-center justify-between hover:bg-gray-50 select-none">
-              <div class="flex items-center space-x-2.5 truncate">
+            <div class="p-3.5 flex items-center justify-between select-none hover:bg-gray-50 transition">
+              <div onclick="window.toggleConceptCard(${idx})" class="flex items-center space-x-2.5 truncate cursor-pointer flex-1 mr-2">
                 <span class="w-6 h-6 rounded bg-indigo-50 text-indigo-700 font-bold text-[10px] flex items-center justify-center flex-shrink-0">
                   ${idx + 1}
                 </span>
                 <h4 class="text-xs font-bold text-gray-900 truncate">${card.heading}</h4>
               </div>
-              <i data-lucide="chevron-down" id="concept-chevron-${idx}" class="w-3.5 h-3.5 text-gray-400 transform transition flex-shrink-0"></i>
+
+              <div class="flex items-center space-x-1.5 flex-shrink-0">
+                <button onclick="event.stopPropagation(); openAddMediaModal(${idx})" class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-indigo-50 active:bg-indigo-100 text-gray-600 hover:text-indigo-600 flex items-center justify-center transition" title="Add Media">
+                  <i data-lucide="plus" class="w-4 h-4"></i>
+                </button>
+                <button onclick="window.toggleConceptCard(${idx})" class="p-1 text-gray-400 hover:text-gray-600 transition">
+                  <i data-lucide="chevron-down" id="concept-chevron-${idx}" class="w-4 h-4 transform transition"></i>
+                </button>
+              </div>
             </div>
 
-            <!-- Body: Collapsed by Default -->
-            <div id="concept-body-${idx}" class="hidden p-4 border-t border-gray-100 bg-gray-50 space-y-3">
+            <div id="concept-body-${idx}" class="hidden p-4 border-t border-gray-100 bg-gray-50 space-y-3.5">
+              
+              <!-- MEDIA SECTION: PLACED DIRECTLY UNDER HEADING, ABOVE DOTTED TEXT -->
+              ${mediaItems.length > 0 ? `
+                <div class="space-y-1.5 pb-2 border-b border-gray-200">
+                  <div class="flex items-center justify-between px-1">
+                    <span class="text-[10px] font-bold uppercase text-gray-400">Media Gallery (${mediaItems.length})</span>
+                    <span class="text-[10px] text-gray-400">Swipe or drag to scroll</span>
+                  </div>
+
+                  <div class="relative group/gallery">
+                    ${mediaItems.length > 1 ? `
+                      <button onclick="window.scrollGalleryTrack(${idx}, -1)" class="hidden md:flex absolute -left-2.5 top-1/2 -translate-y-1/2 z-30 w-7 h-7 rounded-full bg-white shadow-md border border-gray-200 items-center justify-center text-gray-700 hover:bg-gray-100 transition" title="Previous Media">
+                        <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+                      </button>
+                    ` : ''}
+
+                    <div id="gallery-track-${idx}" class="gallery-drag-track flex space-x-3 overflow-x-auto no-scrollbar snap-x snap-mandatory py-1 cursor-grab select-none">
+                      ${mediaItems.map((m, mIdx) => {
+                        const start = m.start || null;
+                        const end = m.end || null;
+                        return `
+                          <div class="${mediaItems.length > 1 ? 'w-72 sm:w-80' : 'w-full'} flex-shrink-0 snap-start relative rounded-xl overflow-hidden bg-black shadow-sm" style="aspect-ratio: 16/9;">
+                            ${m.type === 'video' ? `
+                              <div id="video-box-${idx}-${mIdx}" class="relative w-full h-full overflow-hidden bg-black rounded-xl">
+                                <!-- Clean native player: Top 18% & bottom 18% cropped to hide all title, author avatar, share, like, and youtube branding -->
+                                <iframe 
+                                  src="${getEmbedUrl(m.url, start, end)}" 
+                                  class="absolute left-0 w-full" 
+                                  style="width: 100%; height: 136%; top: -18%; border: 0;" 
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                  allowfullscreen 
+                                  loading="lazy">
+                                </iframe>
+
+                                <!-- Fullscreen button only -->
+                                <button 
+                                  onclick="window.toggleMediaFullscreen('video-box-${idx}-${mIdx}')" 
+                                  class="absolute bottom-2 right-2 p-1.5 bg-black/70 hover:bg-black/90 text-white rounded-lg transition z-10 shadow-md flex items-center justify-center" 
+                                  title="Full Screen">
+                                  <i data-lucide="maximize" class="w-3.5 h-3.5"></i>
+                                </button>
+                              </div>
+                            ` : `
+                              <div class="relative w-full h-full cursor-pointer group/img" onclick="window.openImageLightbox('${getImageUrl(m.url)}', '${m.caption ? m.caption.replace(/'/g, "\\'") : ''}')">
+                                <img src="${getImageUrl(m.url)}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/600x400?text=Image+Error';"/>
+                                <button class="absolute bottom-2 left-2 p-1 bg-black/60 hover:bg-black/80 text-white rounded-md transition" title="View Full Screen">
+                                  <i data-lucide="maximize-2" class="w-3 h-3"></i>
+                                </button>
+                              </div>
+                            `}
+
+                            ${m.caption ? `<div class="absolute bottom-2 left-2 max-w-[75%] bg-black/70 text-white text-[9px] px-2.5 py-1 rounded-md truncate pointer-events-none">${m.caption}</div>` : ''}
+
+                            ${mediaItems.length > 1 ? `<span class="absolute top-2 left-2 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded pointer-events-none">${mIdx + 1}/${mediaItems.length}</span>` : ''}
+
+                            <!-- DELETE ICON IN GALLERY (Triggers Top-Anchored Confirmation Dialog) -->
+                            <button onclick="event.stopPropagation(); window.handleRemoveMedia(${idx}, ${mIdx})" class="absolute top-2 right-2 p-1.5 bg-black/70 hover:bg-red-600 text-white rounded-lg transition z-30 shadow-md flex items-center justify-center" title="Delete Media">
+                              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                          </div>
+                        `;
+                      }).join("")}
+                    </div>
+
+                    ${mediaItems.length > 1 ? `
+                      <button onclick="window.scrollGalleryTrack(${idx}, 1)" class="hidden md:flex absolute -right-2.5 top-1/2 -translate-y-1/2 z-30 w-7 h-7 rounded-full bg-white shadow-md border border-gray-200 items-center justify-center text-gray-700 hover:bg-gray-100 transition" title="Next Media">
+                        <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                      </button>
+                    ` : ''}
+                  </div>
+                </div>
+              ` : ""}
+
+              <!-- DOTTED TEXT LIST (Left-Aligned and Justified) -->
               <ul class="space-y-2 text-xs text-gray-700">
                 ${points.map(pt => `
                   <li class="flex items-start space-x-2 text-left text-justify">
-                    <span class="text-indigo-600 font-black text-xs mt-0.5">•</span>
+                    <span class="text-indigo-600 font-black text-xs mt-0.5 flex-shrink-0">•</span>
                     <span class="leading-relaxed flex-1">${pt.replace(/^[-•*]\s*/, "")}</span>
                   </li>
                 `).join("")}
               </ul>
 
-              <!-- Media -->
-              ${mediaItems.length > 0 ? `
-                <div class="pt-2 border-t border-gray-200 space-y-2">
-                  ${mediaItems.map((m, mIdx) => `
-                    <div class="relative rounded-xl overflow-hidden bg-black" style="aspect-ratio: 16/9;">
-                      ${m.type === 'video' ? `
-                        <iframe src="${getEmbedUrl(m.url)}" class="absolute left-0 w-full" style="height: 140%; top: -20%; border: 0;" allowfullscreen></iframe>
-                      ` : `
-                        <img src="${m.url}" class="w-full h-full object-cover"/>
-                      `}
-                      <button onclick="handleRemoveMedia(${idx}, ${mIdx})" class="absolute top-2 right-2 p-1 bg-white text-red-600 rounded-md">
-                        <i data-lucide="trash-2" class="w-3 h-3"></i>
-                      </button>
-                    </div>
-                  `).join("")}
-                </div>
-              ` : ""}
-
-              <button onclick="openAddMediaModal(${idx})" class="w-full py-1.5 bg-white hover:bg-indigo-50 border border-dashed border-gray-300 rounded-lg text-gray-500 hover:text-indigo-600 text-[10px] font-bold flex items-center justify-center space-x-1">
-                <i data-lucide="plus" class="w-3 h-3"></i>
-                <span>Add Image / Video</span>
-              </button>
             </div>
           </div>
         `;
@@ -1192,11 +1716,12 @@ OUTPUT RULES: Start your response with '[' immediately. Do not write any intro t
       html += `</div></div>`;
       out.innerHTML = html;
       safeCreateIcons();
+      window.initDraggableGalleries();
 
       window.currentCardsState = { cards, book, unit };
     }
 
-    // ---------------- 2. UNIT ACTIVITIES (SCORE 5 EACH, 1 COPY BTN, JUSTIFIED) ----------------
+    // ---------------- 2. UNIT ACTIVITIES ----------------
     async function loadOrGenerateUnitActivities(book, unit) {
       const activityKey = `activity_${unit.unit_no}`;
       const cacheId = `scert_activity_${book.id || 'b'}_u${unit.unit_no}`;
@@ -1316,7 +1841,6 @@ JSON format:
       safeCreateIcons();
     };
 
-    // 1 Button: Copy ALL questions
     window.copyAllActivityQuestions = (actIdx) => {
       const act = window.currentActivitiesData[actIdx];
       let text = `Activity ${act.activity_no || actIdx + 1}: ${act.title || ""}\n\n`;
@@ -1326,7 +1850,6 @@ JSON format:
       window.copyPlainText(text.trim(), "Questions copied!");
     };
 
-    // 1 Button: Copy ALL answers
     window.copyAllActivityAnswers = (actIdx) => {
       const act = window.currentActivitiesData[actIdx];
       let text = `Activity ${act.activity_no || actIdx + 1} Answers:\n\n`;
@@ -1343,12 +1866,35 @@ JSON format:
       const headerActions = document.getElementById("fs-header-actions");
       const cacheId = `scert_activity_${book.id || 'b'}_u${unit.unit_no}`;
 
+      // LOCKED / UNLOCKED REPLACED WITH ICONS ONLY
       headerActions.innerHTML = isLocked ? `
-        <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded">Locked</span>
-        <button onclick="if(confirm('Unlock activities?')){ window.lockState['${cacheId}'] = false; loadOrGenerateUnitActivities(window.currentUnitContext.book, window.currentUnitContext.unit); }" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded text-[10px] font-bold">
-          Unlock
+        <span class="p-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center shadow-sm" title="Locked">
+          <i data-lucide="lock" class="w-3.5 h-3.5 text-emerald-600"></i>
+        </span>
+        <button id="btn-unlock-activities" class="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition" title="Unlock">
+          <i data-lucide="unlock" class="w-3.5 h-3.5"></i>
         </button>
-      ` : ``;
+      ` : `
+        <span class="p-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center shadow-sm" title="Unlocked">
+          <i data-lucide="unlock" class="w-3.5 h-3.5 text-amber-600"></i>
+        </span>
+      `;
+
+      const unlockBtn = document.getElementById("btn-unlock-activities");
+      if (unlockBtn) {
+        unlockBtn.onclick = async () => {
+          const ok = await window.showConfirmDialog({
+            title: "Unlock Activities",
+            message: "Unlock this unit's activities to regenerate questions? They will auto-lock once completed.",
+            confirmText: "Unlock",
+            isDanger: false
+          });
+          if (ok) {
+            window.lockState[cacheId] = false;
+            loadOrGenerateUnitActivities(window.currentUnitContext.book, window.currentUnitContext.unit);
+          }
+        };
+      }
 
       let html = `
         <div class="space-y-3 w-full">
@@ -1364,7 +1910,6 @@ JSON format:
         html += `
           <div class="w-full bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
             
-            <!-- Accordion Header -->
             <div onclick="window.toggleActivityCard(${actIdx})" class="p-3.5 cursor-pointer flex items-center justify-between hover:bg-gray-50 select-none">
               <div class="flex items-center space-x-2 truncate">
                 <span class="px-2 py-0.5 rounded bg-amber-50 text-amber-800 font-bold text-[10px]">
@@ -1378,10 +1923,8 @@ JSON format:
               </div>
             </div>
 
-            <!-- Body: Collapsed Default -->
             <div id="act-body-${actIdx}" class="hidden p-4 border-t border-gray-100 bg-white space-y-4">
               
-              <!-- Questions Header & Single Copy Button -->
               <div>
                 <div class="flex items-center justify-between pb-2 border-b border-gray-100">
                   <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Questions</span>
@@ -1391,7 +1934,6 @@ JSON format:
                   </button>
                 </div>
 
-                <!-- Left Aligned & Justified Questions -->
                 <div class="divide-y divide-gray-100 space-y-2.5 pt-1">
                   ${(act.questions || []).map((q, qIdx) => `
                     <div class="pt-2.5 first:pt-0 flex items-start justify-between gap-3">
@@ -1405,7 +1947,6 @@ JSON format:
                 </div>
               </div>
 
-              <!-- Answers Section & Single Copy Button -->
               <div class="pt-3 border-t border-gray-100 space-y-3">
                 <div class="flex items-center justify-between">
                   <button 
@@ -1423,7 +1964,6 @@ JSON format:
                   </button>
                 </div>
 
-                <!-- Left Aligned & Justified Bullet-Dot Answers -->
                 <div id="act-answers-${actIdx}" class="hidden space-y-3 pt-1">
                   ${(act.questions || []).map((q, qIdx) => {
                     const dotAnswer = (q.answer || "").replace(/^\s*\d+[\.\)]\s*/gm, "• ");
@@ -1452,20 +1992,55 @@ JSON format:
     // Media Modal Actions
     const modalMedia = document.getElementById("modal-add-media");
     document.getElementById("btn-close-media").onclick = () => modalMedia.classList.add("hidden");
+
+    window.toggleVideoTimeInputs = (type) => {
+      const controls = document.getElementById("video-time-controls");
+      if (type === "video") controls.classList.remove("hidden");
+      else controls.classList.add("hidden");
+      safeCreateIcons();
+    };
+
     window.openAddMediaModal = (cardIndex) => {
       window.activeMediaTarget = cardIndex;
+      window.stagedFileMedia = null;
       document.getElementById("input-media-url").value = "";
+      document.getElementById("input-video-start").value = "";
+      document.getElementById("input-video-end").value = "";
       document.getElementById("input-media-caption").value = "";
+      document.getElementById("input-media-type").value = "video";
+      window.toggleVideoTimeInputs("video");
+      window.clearSelectedFileMedia();
+      window.switchMediaSourceTab('url');
       modalMedia.classList.remove("hidden");
+      safeCreateIcons();
     };
 
     document.getElementById("btn-confirm-add-media").onclick = async () => {
-      const url = document.getElementById("input-media-url").value.trim();
-      const type = document.getElementById("input-media-type").value;
       const caption = document.getElementById("input-media-caption").value.trim();
+      let type = 'image';
+      let url = '';
+      let start = null;
+      let end = null;
+
+      if (window.activeMediaSourceTab === 'url') {
+        const rawUrl = document.getElementById("input-media-url").value.trim();
+        type = document.getElementById("input-media-type").value;
+        const startInput = document.getElementById("input-video-start").value.trim();
+        const endInput = document.getElementById("input-video-end").value.trim();
+        start = parseTimestampToSeconds(startInput);
+        end = parseTimestampToSeconds(endInput);
+        url = rawUrl;
+      } else {
+        if (!window.stagedFileMedia) {
+          showToast("Please choose or capture media first", "error");
+          return;
+        }
+        type = window.stagedFileMedia.type;
+        url = window.stagedFileMedia.url;
+      }
 
       if (!url) {
-        showToast("Enter a URL", "error");
+        showToast("Enter a valid URL or capture photo", "error");
         return;
       }
 
@@ -1474,20 +2049,29 @@ JSON format:
       const targetCard = cards[window.activeMediaTarget];
 
       if (!targetCard.media) targetCard.media = [];
-      targetCard.media.push({ type, url, caption });
+      targetCard.media.push({ type, url, caption, start, end });
 
       modalMedia.classList.add("hidden");
       await persistUnitContent(book, `summary_${unit.unit_no}`, cards);
       renderSummaryCards(cards, book, unit, true);
-      showToast("Media added");
+      showToast("Media attached to concept!");
     };
 
+    // Top-Anchored Confirmation Dialog when Deleting Media from Gallery
     window.handleRemoveMedia = async (cardIndex, mediaIndex) => {
-      if (!confirm("Remove media?")) return;
+      const confirmed = await window.showConfirmDialog({
+        title: "Delete Media",
+        message: "Are you sure you want to permanently delete this media from the gallery?",
+        confirmText: "Delete",
+        isDanger: true
+      });
+      if (!confirmed) return;
+
       const { cards, book, unit } = window.currentCardsState;
       cards[cardIndex].media.splice(mediaIndex, 1);
       await persistUnitContent(book, `summary_${unit.unit_no}`, cards);
       renderSummaryCards(cards, book, unit, true);
+      showToast("Media deleted.");
     };
 
     // ---------------- 3. QUIZ ----------------
@@ -1571,11 +2155,33 @@ Output immediately starting with '[' without intro text:
       const headerActions = document.getElementById("fs-header-actions");
       const cacheId = `scert_quiz_${book.id || 'b'}_u${unit.unit_no}`;
 
+      // LOCKED / UNLOCKED WITH ICONS
       headerActions.innerHTML = `
         <div id="quiz-score-badge" class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded">
           0 / ${quiz.length}
         </div>
+        ${isLocked ? `
+          <button id="btn-unlock-quiz" class="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition" title="Unlock">
+            <i data-lucide="unlock" class="w-3.5 h-3.5"></i>
+          </button>
+        ` : ''}
       `;
+
+      const unlockBtn = document.getElementById("btn-unlock-quiz");
+      if (unlockBtn) {
+        unlockBtn.onclick = async () => {
+          const ok = await window.showConfirmDialog({
+            title: "Unlock Quiz",
+            message: "Unlock this quiz to regenerate questions?",
+            confirmText: "Unlock",
+            isDanger: false
+          });
+          if (ok) {
+            window.lockState[cacheId] = false;
+            loadOrGenerateUnitQuiz(window.currentUnitContext.book, window.currentUnitContext.unit);
+          }
+        };
+      }
 
       let html = `
         <div class="space-y-3 w-full">
