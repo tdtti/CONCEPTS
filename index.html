@@ -46,7 +46,7 @@
     .cursor-grab { cursor: grab; }
     .cursor-grabbing { cursor: grabbing; user-select: none; }
     
-    /* Native Fullscreen Video Container Styles */
+    /* Native Fullscreen Container Styles */
     :fullscreen, :-webkit-full-screen {
       width: 100vw !important;
       height: 100vh !important;
@@ -57,8 +57,8 @@
     }
     :fullscreen iframe, :-webkit-full-screen iframe {
       width: 100% !important;
-      height: 136% !important;
-      top: -18% !important;
+      height: 150% !important;
+      top: -25% !important;
     }
   </style>
 </head>
@@ -113,7 +113,7 @@
       <div class="text-xs text-gray-600 text-left space-y-2.5 bg-gray-50 p-3 rounded-xl border border-gray-200">
         <div class="flex items-center space-x-2">
           <span class="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[10px] flex items-center justify-center">1</span>
-          <span>Tap the <b>Share button</b> in Safari</span>
+          <span>Tap the <b>Share button</b> in Safari bar</span>
         </div>
         <div class="flex items-center space-x-2">
           <span class="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[10px] flex items-center justify-center">2</span>
@@ -132,7 +132,7 @@
 
   <!-- ================= FULL-SCREEN IMMERSIVE LEARNING OVERLAY ================= -->
   <div id="student-fullscreen-overlay" class="hidden fixed inset-0 z-50 bg-gray-50 overflow-y-auto flex flex-col">
-    <!-- Top Mobile App Header -->
+    <!-- Top Header -->
     <header class="bg-white border-b border-gray-200 sticky top-0 z-40 px-3 sm:px-6 py-2.5 flex items-center justify-between shadow-sm">
       <div class="flex items-center space-x-2.5 min-w-0">
         <button onclick="window.closeFullScreenView()" class="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center flex-shrink-0 transition">
@@ -299,7 +299,7 @@
     </div>
   </main>
 
-  <!-- ================= ADD MEDIA MODAL (MINIMALIST ICONS) ================= -->
+  <!-- ================= ADD MEDIA MODAL ================= -->
   <div id="modal-add-media" class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden flex items-center justify-center p-3" style="z-index: 999995 !important;">
     <div class="bg-white max-w-sm w-full rounded-2xl shadow-xl border border-gray-200 p-5 space-y-3.5">
       <div class="flex justify-between items-center pb-2 border-b border-gray-100">
@@ -312,7 +312,7 @@
         </button>
       </div>
 
-      <!-- 3-Way Source Tabs with ICONS ONLY -->
+      <!-- 3-Way Source Tabs with Icons Only -->
       <div class="grid grid-cols-3 bg-gray-100 p-1 rounded-xl border border-gray-200 text-center gap-1">
         <button id="tab-src-url" onclick="window.switchMediaSourceTab('url')" class="py-2 rounded-lg bg-white text-indigo-700 shadow-sm flex items-center justify-center transition" title="Web / Drive Link">
           <i data-lucide="globe" class="w-4 h-4"></i>
@@ -325,7 +325,7 @@
         </button>
       </div>
 
-      <!-- 1. URL / Google Drive Share Link Panel (Icon Labels) -->
+      <!-- 1. URL / Google Drive Share Link Panel -->
       <div id="panel-src-url" class="space-y-3">
         <div>
           <label class="flex items-center text-gray-400 mb-1" title="Media Type">
@@ -344,7 +344,7 @@
           <input type="url" id="input-media-url" placeholder="https://..." class="w-full text-xs border border-gray-300 rounded-xl px-3 py-2 focus:outline-none" />
         </div>
 
-        <!-- Video Start & End Range Controls (Icon Labels) -->
+        <!-- Video Start & End Range Controls -->
         <div id="video-time-controls" class="grid grid-cols-2 gap-2 pt-0.5">
           <div>
             <label class="flex items-center text-gray-400 mb-1" title="Start Time">
@@ -379,7 +379,7 @@
         </div>
       </div>
 
-      <!-- Image Preview Thumbnail (for Files & Camera) -->
+      <!-- Image Preview Thumbnail -->
       <div id="media-preview-container" class="hidden pt-1">
         <div class="relative w-full rounded-xl overflow-hidden bg-black" style="aspect-ratio: 16/9;">
           <img id="media-preview-img" src="" class="w-full h-full object-cover" />
@@ -527,7 +527,7 @@
     }
     safeCreateIcons();
 
-    // ---------------- TOP-ONLY CONFIRMATION MODAL ----------------
+    // ---------------- TOP-ONLY CONFIRMATION MODAL (ALWAYS ON TOP OF FULLSCREEN) ----------------
     window.showConfirmDialog = ({ title = "Delete Item", message = "Are you sure you want to proceed?", confirmText = "Delete", isDanger = true }) => {
       return new Promise((resolve) => {
         const modal = document.getElementById("modal-custom-dialog");
@@ -681,15 +681,9 @@
       return isNaN(num) ? null : num;
     }
 
-    // ---------------- SMART GOOGLE DRIVE & YOUTUBE URL PARSER ----------------
+    // ---------------- RESTRUCTURED YOUTUBE URL: NEVER SHOW TOP BAR, CONTROLS=0 ----------------
     function getEmbedUrl(url, startSec = null, endSec = null) {
       if (!url) return null;
-
-      const driveMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
-      if (url.includes('drive.google.com') && driveMatch && driveMatch[1]) {
-        return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
-      }
-
       const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
       if (ytMatch) {
         const videoId = ytMatch[1];
@@ -1326,7 +1320,7 @@ Front pages:
             <div class="p-2 rounded-lg bg-indigo-100 text-indigo-700"><i data-lucide="layers" class="w-4 h-4"></i></div>
             <div class="min-w-0">
               <p class="text-xs font-bold text-gray-900 truncate">1. Concept Cards</p>
-              <p class="text-[10px] text-gray-400">12+ Points & Media</p>
+              <p class="text-[10px] text-gray-400">12+ Points & Media Gallery</p>
             </div>
           </button>
 
@@ -1606,6 +1600,7 @@ OUTPUT RULES: Start your response with '[' immediately. Do not write any intro t
         html += `
           <div class="w-full bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
             
+            <!-- Header: Single "+" Add Media Button in Top-Right -->
             <div class="p-3.5 flex items-center justify-between select-none hover:bg-gray-50 transition">
               <div onclick="window.toggleConceptCard(${idx})" class="flex items-center space-x-2.5 truncate cursor-pointer flex-1 mr-2">
                 <span class="w-6 h-6 rounded bg-indigo-50 text-indigo-700 font-bold text-[10px] flex items-center justify-center flex-shrink-0">
@@ -1624,9 +1619,10 @@ OUTPUT RULES: Start your response with '[' immediately. Do not write any intro t
               </div>
             </div>
 
+            <!-- Body: Collapsed by Default -->
             <div id="concept-body-${idx}" class="hidden p-4 border-t border-gray-100 bg-gray-50 space-y-3.5">
               
-              <!-- MEDIA SECTION: PLACED DIRECTLY UNDER HEADING, ABOVE DOTTED TEXT -->
+              <!-- MEDIA SECTION: CROPPED (TOP 25% & BOTTOM 25% HIDDEN SO TITLE/SHARE/AUTHOR NEVER SHOW ABOVE) -->
               ${mediaItems.length > 0 ? `
                 <div class="space-y-1.5 pb-2 border-b border-gray-200">
                   <div class="flex items-center justify-between px-1">
@@ -1649,14 +1645,14 @@ OUTPUT RULES: Start your response with '[' immediately. Do not write any intro t
                           <div class="${mediaItems.length > 1 ? 'w-72 sm:w-80' : 'w-full'} flex-shrink-0 snap-start relative rounded-xl overflow-hidden bg-black shadow-sm" style="aspect-ratio: 16/9;">
                             ${m.type === 'video' ? `
                               <div id="video-box-${idx}-${mIdx}" class="relative w-full h-full overflow-hidden bg-black rounded-xl">
-                                <!-- Clean native player: Top 18% & bottom 18% cropped to hide all title, author avatar, share, like, and youtube branding -->
+                                
+                                <!-- ONLY PLAY VIDEO: Top 25% cropped (hides author, avatar, title, share, like, playlist). Tapping video plays natively. -->
                                 <iframe 
                                   src="${getEmbedUrl(m.url, start, end)}" 
                                   class="absolute left-0 w-full" 
-                                  style="width: 100%; height: 136%; top: -18%; border: 0;" 
+                                  style="width: 100%; height: 150%; top: -25%; border: 0;" 
                                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                  allowfullscreen 
-                                  loading="lazy">
+                                  allowfullscreen>
                                 </iframe>
 
                                 <!-- Fullscreen button only -->
@@ -1681,7 +1677,7 @@ OUTPUT RULES: Start your response with '[' immediately. Do not write any intro t
                             ${mediaItems.length > 1 ? `<span class="absolute top-2 left-2 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded pointer-events-none">${mIdx + 1}/${mediaItems.length}</span>` : ''}
 
                             <!-- DELETE ICON IN GALLERY (Triggers Top-Anchored Confirmation Dialog) -->
-                            <button onclick="event.stopPropagation(); window.handleRemoveMedia(${idx}, ${mIdx})" class="absolute top-2 right-2 p-1.5 bg-black/70 hover:bg-red-600 text-white rounded-lg transition z-30 shadow-md flex items-center justify-center" title="Delete Media">
+                            <button onclick="event.stopPropagation(); window.handleRemoveMedia(${idx}, ${mIdx})" class="absolute top-2 right-2 p-1.5 bg-black/70 hover:bg-red-600 text-white rounded-lg transition z-20 shadow-md flex items-center justify-center" title="Delete Media">
                               <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                             </button>
                           </div>
